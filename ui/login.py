@@ -1,7 +1,3 @@
-"""
-Экран авторизации (Рисунок 2).
-"""
-
 import customtkinter as ctk
 from tkinter import messagebox
 
@@ -11,19 +7,14 @@ class LoginWindow(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-
         self.title("ЭЖКСР — Вход")
         self.geometry("1440x1024")
-        self.resizable(False, False)
         self.configure(fg_color="#1E3A8A")
 
         card = ctk.CTkFrame(self, width=420, height=520,
                             corner_radius=16, fg_color="#FFFFFF")
         card.place(relx=0.5, rely=0.5, anchor="center")
         card.pack_propagate(False)
-
-        ctk.CTkLabel(card, text="📓",
-                     font=("Segoe UI Emoji", 42)).pack(pady=(40, 8))
 
         ctk.CTkLabel(card, text="ЭЖКСР",
                      font=("Inter", 20, "bold"),
@@ -97,13 +88,12 @@ class LoginWindow(ctk.CTk):
             text_color="#2563EB",
             cursor="hand2"
         )
-        link.pack(pady=(16, 40))
+        link.pack(pady=(16, 20))
         link.bind("<Button-1>", lambda e: self.open_register())
 
     def on_login(self):
         """Вход."""
         from logic.auth import authenticate
-
         login = self.login_entry.get().strip()
         password = self.password_entry.get().strip()
 
