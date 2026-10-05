@@ -1,10 +1,11 @@
 from db.database import init_db
-from ui.login import LoginWindow
+from ui.app import MainApp
 
 
 def main():
+    """Запуск приложения."""
     init_db()
-    app = LoginWindow()
+    app = MainApp()
     app.mainloop()
 
 
