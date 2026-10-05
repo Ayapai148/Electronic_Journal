@@ -99,6 +99,7 @@ class AdminApp(ctk.CTkFrame):
         menu_items = [
             ("Панель управления", "dashboard"),
             ("Пользователи", "users"),
+            ("Кружки", "clubs"),
             ("Отчёты", "reports"),
         ]
 
@@ -138,6 +139,8 @@ class AdminApp(ctk.CTkFrame):
             self._show_dashboard()
         elif page == "users":
             self._show_users()
+        elif page =="clubs":
+            self._show_clubs()
         elif page == "reports":
             self._show_reports()
 
@@ -313,11 +316,11 @@ class AdminApp(ctk.CTkFrame):
             row.pack(fill="x")
 
             for value, w in [
-                (str(u.get("id", "—")), COL_ID),
-                (u.get("fio", "—"), COL_FIO),
-                (u.get("login", "—"), COL_LOGIN),
+                (str(u.get("id", "-")), COL_ID),
+                (u.get("fio", "-"), COL_FIO),
+                (u.get("login", "-"), COL_LOGIN),
                 (self._role_text(u.get("role")), COL_ROLE),
-                (u.get("create_date") or "—", COL_DATE),
+                (u.get("create_date") or "-", COL_DATE),
             ]:
                 ctk.CTkLabel(row, text=value, width=w,
                              font=("Inter", 13),
@@ -327,7 +330,6 @@ class AdminApp(ctk.CTkFrame):
             # Кнопки действий
             actions = ctk.CTkFrame(row, width=COL_ACTION, fg_color="transparent")
             actions.pack(side="left", padx=14, pady=11)
-            actions.pack_propagate(False)
 
             ctk.CTkButton(actions, text="удалить",
                           fg_color="#FEE2E2", hover_color="#FECACA",
@@ -366,7 +368,7 @@ class AdminApp(ctk.CTkFrame):
         if not confirm:
             return
 
-        if delete_user(user_id):
+        if delete_user(user_id, login, admin=self.user):
             messagebox.showinfo("Успех", "Пользователь удалён")
             self.show_page("users")
         else:
@@ -459,6 +461,177 @@ class AdminApp(ctk.CTkFrame):
     def _reload_users(self):
         """Перезагрузить страницу пользователей."""
         self.show_page("users")
+    def _show_clubs(self):
+        """Страница «Кружки»."""
+        from logic.admin import get_all_clubs
+
+        ctk.CTkLabel(self.content, text="Кружки и секции",
+                     font=("Inter", 22, "bold"),
+                     text_color=TEXT_DARK, anchor="w").pack(fill="x")
+
+        ctk.CTkLabel(self.content,
+                     text="Список всех кружков и секций колледжа",
+                     font=("Inter", 13), text_color=TEXT_GRAY,
+                     anchor="w").pack(fill="x", pady=(4, 24))
+
+        clubs = get_all_clubs()
+
+        panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
+                             corner_radius=12, border_width=1,
+                             border_color=BORDER)
+        panel.pack(fill="both", expand=True)
+
+        h = ctk.CTkFrame(panel, fg_color="transparent")
+        h.pack(fill="x", padx=22, pady=16)
+        ctk.CTkLabel(h, text="Список кружков",
+                     font=("Inter", 15, "bold"),
+                     text_color=TEXT_DARK).pack(side="left")
+
+        ctk.CTkButton(h, text="+ Добавить кружок",
+                      fg_color="#2563EB", hover_color="#1D4ED8",
+                      height=32, corner_radius=8,
+                      font=("Inter", 12, "bold"),
+                      command=self._on_add_club).pack(side="right")
+
+        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
+
+        if not clubs:
+            ctk.CTkLabel(panel, text="Нет кружков",
+                         font=("Inter", 14),
+                         text_color="#94A3B8").pack(pady=40)
+            return
+
+        columns = [
+            ("Название", 240),
+            ("Тип", 140),
+            ("Преподаватель", 220),
+            ("Расписание", 260),
+            ("Аудитория", 120),
+            ("Действия", 200),
+        ]
+
+        # Заголовки — через grid (как данные)
+        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
+        head.pack(fill="x")
+
+        for col_idx, (title, width) in enumerate(columns):
+            head.grid_columnconfigure(col_idx, weight=0, minsize=width)
+            ctk.CTkLabel(head, text=title,
+                         font=("Inter", 12, "bold"),
+                         text_color=MENU_TEXT,
+                         anchor="w").grid(
+                row=0, column=col_idx,
+                sticky="w", padx=14, pady=11
+            )
+
+                # Прокручиваемая область
+        scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent",
+                                        scrollbar_button_color="#CBD5E1")
+        scroll.pack(fill="both", expand=True)
+
+        # Список колонок с фиксированной шириной
+        columns = [
+            ("Название", 240),
+            ("Тип", 140),
+            ("Преподаватель", 220),
+            ("Расписание", 260),
+            ("Аудитория", 120),
+            ("Действия", 200),
+        ]
+
+        for r_idx, c in enumerate(clubs):
+            row = ctk.CTkFrame(scroll, fg_color="transparent")
+            row.pack(fill="x")
+
+            # Используем grid с фиксированными колонками
+            for col_idx, (_, width) in enumerate(columns):
+                row.grid_columnconfigure(col_idx, weight=0, minsize=width)
+
+            # Данные
+            values = [
+                c.get("name", "-"),
+                c.get("type") or "-",
+                c.get("teacher_fio", "-"),
+                c.get("schedule") or "-",
+                c.get("room") or "-",
+            ]
+
+            for col_idx, value in enumerate(values):
+                ctk.CTkLabel(row, text=value,
+                             font=("Inter", 13),
+                             text_color="#334155",
+                             anchor="w").grid(
+                    row=0, column=col_idx,
+                    sticky="w", padx=14, pady=11
+                )
+
+            # Действия — отдельный фрейм в 6-й колонке
+            actions = ctk.CTkFrame(row, fg_color="transparent")
+            actions.grid(row=0, column=5, sticky="w", padx=14, pady=11)
+
+            ctk.CTkButton(actions, text="изменить",
+                          fg_color="transparent", border_width=1,
+                          border_color=BORDER, text_color=MENU_TEXT,
+                          hover_color=MENU_ACTIVE,
+                          width=80, height=28,
+                          command=lambda club=c: self._on_edit_club(club)
+                          ).pack(side="left", padx=(0, 4))
+
+            ctk.CTkButton(actions, text="удалить",
+                          fg_color="#FEE2E2", hover_color="#FECACA",
+                          text_color="#991B1B",
+                          width=80, height=28,
+                          command=lambda cid=c.get("id"),
+                                         cname=c.get("name"):
+                              self._on_delete_club(cid, cname)
+                          ).pack(side="left")
+
+            if r_idx < len(clubs) - 1:
+                ctk.CTkFrame(scroll, height=1,
+                             fg_color="#F1F5F9").pack(fill="x")
+
+    def _on_add_club(self):
+        """Открыть модалку добавления кружка."""
+        dialog = AddClubDialog(
+            self, 
+            on_success=self._reload_clubs, 
+            club=None,
+            admin=self.user
+        )
+        dialog.grab_set()
+
+    def _on_edit_club(self, club):
+        """Открыть модалку редактирования кружка."""
+        dialog = AddClubDialog(
+            self, 
+            on_success=self._reload_clubs, 
+            club=club,
+            admin=self.user
+        )
+        dialog.grab_set()
+
+    def _on_delete_club(self, club_id, club_name):
+        """Удалить кружок с подтверждением."""
+        from logic.admin import delete_club
+
+        confirm = messagebox.askyesno(
+            "Подтверждение",
+            f"Удалить кружок «{club_name}»?\n"
+            f"Все занятия и записи будут удалены."
+        )
+
+        if not confirm:
+            return
+
+        if delete_club(club_id, club_name, admin=self.user):
+            messagebox.showinfo("Успех", "Кружок удалён")
+            self._reload_clubs()
+        else:
+            messagebox.showerror("Ошибка", "Не удалось удалить")
+
+    def _reload_clubs(self):
+        """Перезагрузить страницу кружков."""
+        self.show_page("clubs")
         
 # ============================================================
 # МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ
@@ -640,4 +813,201 @@ class AddUserDialog(ctk.CTkToplevel):
             self.destroy()
         else:
             messagebox.showerror("Ошибка", "Логин уже занят")
-    
+
+# ============================================================
+# МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ / РЕДАКТИРОВАТЬ КРУЖОК
+# ============================================================
+
+class AddClubDialog(ctk.CTkToplevel):
+    """Модальное окно добавления/редактирования кружка."""
+
+    def __init__(self, parent, on_success, club=None, admin=None):
+        """
+        Args:
+            parent: родитель
+            on_success: функция после успеха
+            club: если None — добавление, если dict — редактирование
+        """
+        super().__init__(parent)
+        self.admin = admin
+
+        self.on_success = on_success
+        self.club = club
+        self.is_edit = club is not None
+
+        self.title("Редактировать кружок" if self.is_edit else "Добавить кружок")
+        self.geometry("500x620")
+        self.resizable(False, False)
+        self.configure(fg_color="#FFFFFF")
+        self.transient(parent)
+
+        # Карточка
+        card = ctk.CTkFrame(self, fg_color="#FFFFFF")
+        card.pack(fill="both", expand=True, padx=36, pady=28)
+
+        # Заголовок
+        title = "Редактировать кружок" if self.is_edit else "Добавить кружок"
+        ctk.CTkLabel(card, text=title,
+                     font=("Inter", 20, "bold"),
+                     text_color="#1E3A8A",
+                     anchor="w").pack(fill="x", pady=(0, 24))
+
+        # Название
+        self.name_entry = self._add_field(card, "Название", "Робототехника")
+
+        # Тип
+        ctk.CTkLabel(card, text="Тип",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        self.type_var = ctk.StringVar(value="Кружок")
+        ctk.CTkOptionMenu(
+            card, values=["Кружок", "Секция"],
+            variable=self.type_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 14))
+
+        # Преподаватель
+        ctk.CTkLabel(card, text="Преподаватель",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        from logic.admin import get_all_teachers_for_select
+        teachers = get_all_teachers_for_select()
+
+        if teachers:
+            teacher_names = [f"{t['id']} — {t['fio']}" for t in teachers]
+            self.teacher_var = ctk.StringVar(value=teacher_names[0])
+        else:
+            teacher_names = ["Нет преподавателей"]
+            self.teacher_var = ctk.StringVar(value="Нет преподавателей")
+
+        ctk.CTkOptionMenu(
+            card, values=teacher_names,
+            variable=self.teacher_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 14))
+
+        # Расписание
+        self.schedule_entry = self._add_field(
+            card, "Расписание",
+            "Пн 15:00-16:30, Ср 15:00-16:30"
+        )
+
+        # Аудитория
+        self.room_entry = self._add_field(card, "Аудитория", "204")
+
+        # Заполняем поля при редактировании
+        if self.is_edit:
+            self.name_entry.insert(0, club.get("name") or "")
+            self.type_var.set(club.get("type") or "Кружок")
+            self.schedule_entry.insert(0, club.get("schedule") or "")
+            self.room_entry.insert(0, club.get("room") or "")
+
+            # Выбираем текущего преподавателя
+            teacher_id = club.get("teacher_id")
+            if teacher_id:
+                for name in teacher_names:
+                    if name.startswith(f"{teacher_id} "):
+                        self.teacher_var.set(name)
+                        break
+
+        # Кнопки
+        buttons = ctk.CTkFrame(card, fg_color="transparent")
+        buttons.pack(fill="x", pady=(8, 0))
+
+        ctk.CTkButton(
+            buttons, text="Отмена",
+            fg_color="transparent",
+            border_width=1, border_color="#CBD5E1",
+            text_color="#475569",
+            hover_color="#F1F5F9",
+            height=42, corner_radius=8,
+            command=self.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(0, 6))
+
+        ctk.CTkButton(
+            buttons, text="Сохранить" if self.is_edit else "Создать",
+            fg_color="#2563EB", hover_color="#1D4ED8",
+            text_color="#FFFFFF",
+            height=42, corner_radius=8,
+            command=self._on_save
+        ).pack(side="left", expand=True, fill="x", padx=(6, 0))
+
+    def _add_field(self, parent, label, placeholder):
+        ctk.CTkLabel(parent, text=label,
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        entry = ctk.CTkEntry(
+            parent, placeholder_text=placeholder,
+            fg_color="#F8FAFC", border_color="#CBD5E1",
+            text_color="#1E293B",
+            placeholder_text_color="#94A3B8",
+            font=("Inter", 13), height=40, corner_radius=8
+        )
+        entry.pack(fill="x", pady=(0, 14))
+        return entry
+
+    def _on_save(self):
+        """Сохранить кружок."""
+        from logic.admin import create_club, update_club
+
+        name = self.name_entry.get().strip()
+        type_ = self.type_var.get()
+        schedule = self.schedule_entry.get().strip()
+        room = self.room_entry.get().strip()
+
+        # Парсим teacher_id из строки "3 — Иванов Иван"
+        teacher_str = self.teacher_var.get()
+        try:
+            teacher_id = int(teacher_str.split(" — ")[0])
+        except (ValueError, IndexError):
+            messagebox.showwarning("Ошибка", "Выберите преподавателя")
+            return
+
+        # Валидация
+        if not name:
+            messagebox.showwarning("Ошибка", "Введите название")
+            return
+
+        if not schedule:
+            messagebox.showwarning("Ошибка", "Введите расписание")
+            return
+
+        # Создание или обновление
+        if self.is_edit:
+            success = update_club(
+                self.club["id"], 
+                name, 
+                type_,
+                teacher_id, 
+                schedule, 
+                room,
+                admin=self.admin
+        )
+        else:
+            success = create_club(
+                name, 
+                type_, 
+                teacher_id, 
+                schedule, 
+                room,
+                admin=self.admin
+        )
+
+        if success:
+            messagebox.showinfo("Успех",
+                                "Кружок обновлён" if self.is_edit
+                                else "Кружок создан")
+            self.on_success()
+            self.destroy()
+        else:
+            messagebox.showerror("Ошибка", "Не удалось сохранить")

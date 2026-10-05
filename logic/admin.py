@@ -96,13 +96,21 @@ def get_all_users():
         conn.close()
 
 
-def delete_user(user_id):
-    """Удалить пользователя по id."""
+def delete_user(user_id, user_login="", admin=None):
+    """Удалить пользователя с логированием."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
         conn.commit()
+
+        if admin:
+            log_action(
+                user_id=admin.get("id"),
+                user_login=admin.get("login", "—"),
+                action="Удалён пользователь",
+                details=user_login
+            )
         return cursor.rowcount > 0
     finally:
         conn.close()
@@ -239,45 +247,29 @@ def log_action(user_id, user_login, action, details=""):
 def create_user_with_profile(fio, login, password, role,
                              group="", direction="", admin=None):
     """
-    Создать пользователя вместе с профилем (студент/преподаватель).
-
-    Args:
-        fio: ФИО одной строкой
-        login: логин
-        password: пароль (открытый)
-        role: student / teacher / admin
-        group: группа (для студента)
-        direction: направление (для преподавателя)
-
-    Returns:
-        bool: True если успешно
+    Создать пользователя вместе с профилем.
+    С логированием.
     """
     conn = get_connection()
     try:
         cursor = conn.cursor()
 
-        # Проверяем логин
         cursor.execute("SELECT id FROM users WHERE login = ?", (login,))
         if cursor.fetchone():
             return False
 
-        # Хешируем пароль
         password_hash = hashlib.sha256(password.encode()).hexdigest()
-
-        # Создаём пользователя
         cursor.execute(
             "INSERT INTO users (login, password, role) VALUES (?, ?, ?)",
             (login, password_hash, role)
         )
         user_id = cursor.lastrowid
 
-        # Разбираем ФИО
         parts = fio.split()
         surname = parts[0] if len(parts) > 0 else ""
         name = parts[1] if len(parts) > 1 else ""
         patronymic = parts[2] if len(parts) > 2 else ""
 
-        # Создаём профиль
         if role == "student":
             cursor.execute(
                 """INSERT INTO students
@@ -292,22 +284,160 @@ def create_user_with_profile(fio, login, password, role,
                    VALUES (?, ?, ?, ?, ?)""",
                 (name, surname, patronymic, direction, user_id)
             )
-        # Для admin профиль не нужен
 
         conn.commit()
+
+        # Логируем
         if admin:
+            role_ru = {
+                "student": "студент",
+                "teacher": "преподаватель",
+                "admin": "администратор",
+            }.get(role, role)
+
             log_action(
                 user_id=admin.get("id"),
                 user_login=admin.get("login", "—"),
                 action="Добавлен пользователь",
-                details=f"{fio}, роль: {role}"
+                details=f"{fio} ({role_ru})"
             )
 
         return True
     except Exception as e:
         conn.rollback()
-        print(f"Ошибка создания пользователя: {e}")
+        print(f"Ошибка: {e}")
         return False
+    finally:
+        conn.close()
+        
+# ============================================================
+# КРУЖКИ (для админа)
+# ============================================================
+
+def get_all_clubs():
+    """
+    Все кружки с ФИО преподавателя.
+
+    Returns:
+        list[dict]: id, name, type, teacher_fio, schedule, room, teacher_id
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                c.id,
+                c.name,
+                c.type,
+                c.schedule,
+                c.room,
+                c.teacher_id,
+                COALESCE(
+                    t.surname || ' ' || t.name,
+                    '—'
+                ) AS teacher_fio
+            FROM clubs c
+            LEFT JOIN teachers t ON c.teacher_id = t.id
+            ORDER BY c.name
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_all_teachers_for_select():
+    """
+    Список преподавателей для выпадающего списка.
+
+    Returns:
+        list[dict]: id, fio
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                id,
+                surname || ' ' || name AS fio
+            FROM teachers
+            ORDER BY surname
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def create_club(name, type_, teacher_id, schedule, room, admin=None):
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """INSERT INTO clubs (name, type, teacher_id, schedule, room)
+               VALUES (?, ?, ?, ?, ?)""",
+            (name, type_, teacher_id, schedule, room)
+        )
+        conn.commit()
+
+        # Логируем
+        if admin:
+            log_action(
+                user_id=admin.get("id"),
+                user_login=admin.get("login", "—"),
+                action="Добавлен кружок",
+                details=f"{name} ({type_})"
+            )
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def update_club(club_id, name, type_, teacher_id, schedule, room, admin=None):
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE clubs
+               SET name = ?, type = ?, teacher_id = ?, schedule = ?, room = ?
+               WHERE id = ?""",
+            (name, type_, teacher_id, schedule, room, club_id)
+        )
+        conn.commit()
+
+        if admin:
+            log_action(
+                user_id=admin.get("id"),
+                user_login=admin.get("login", "—"),
+                action="Изменён кружок",
+                details=f"{name}"
+            )
+        return cursor.rowcount > 0
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def delete_club(club_id, club_name="", admin=None):
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM clubs WHERE id = ?", (club_id,))
+        conn.commit()
+
+        if admin:
+            log_action(
+                user_id=admin.get("id"),
+                user_login=admin.get("login", "—"),
+                action="Удалён кружок",
+                details=club_name
+            )
+        return cursor.rowcount > 0
     finally:
         conn.close()
     
