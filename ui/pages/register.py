@@ -45,7 +45,7 @@ class RegisterPage(ctk.CTkFrame):
                      font=("Inter", 22, "bold"),
                      text_color=TITLE_COLOR).pack(side="left")
 
-        ctk.CTkButton(header, text="← Обратно в вход",
+        ctk.CTkButton(header, text="Обратно в вход",
                       fg_color="transparent",
                       border_width=1, border_color=INPUT_BORDER,
                       text_color="#475569",
@@ -81,7 +81,7 @@ class RegisterPage(ctk.CTkFrame):
         self.build_form()
         self._update_tabs()
 
-        # Кнопка «Завершить»
+        # Кнопка завершить
         ctk.CTkButton(
             self.card, text="Завершить",
             font=("Inter", 14, "bold"),
@@ -91,7 +91,7 @@ class RegisterPage(ctk.CTkFrame):
         ).pack(side="right", padx=36, pady=(0, 24))
 
     def _update_tabs(self):
-        """Обновить цвета табов."""
+        #Обновить цвета табов
         if self.current_role == "student":
             self.btn_student.configure(
                 fg_color=TAB_ACTIVE_BG, text_color=TAB_ACTIVE_TEXT,
@@ -110,7 +110,7 @@ class RegisterPage(ctk.CTkFrame):
                 border_color=TAB_INACTIVE_BORDER)
 
     def build_form(self):
-        """Построить форму."""
+        #Построить форму
         for w in self.form.winfo_children():
             w.destroy()
 
@@ -151,13 +151,13 @@ class RegisterPage(ctk.CTkFrame):
         return entry
 
     def switch_role(self, role):
-        """Переключить роль."""
+        #Переключить роль
         self.current_role = role
         self.build_form()
         self._update_tabs()
 
     def on_register(self):
-        """Зарегистрировать."""
+        #Зарегистрировать
         from logic.auth import register_student, register_teacher
 
         fio = self.fio_entry.get().strip()

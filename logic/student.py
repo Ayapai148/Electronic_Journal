@@ -1,18 +1,7 @@
-
-
 from db.database import get_connection
 
 
 def get_student_by_user_id(user_id):
-    """
-    Получить профиль студента по id пользователя.
-
-    Args:
-        user_id: id из таблицы users
-
-    Returns:
-        dict | None: данные студента или None
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -29,17 +18,7 @@ def get_student_by_user_id(user_id):
         conn.close()
 
 
-# ============================================================
-# 2. КОЛИЧЕСТВО КРУЖКОВ
-# ============================================================
-
 def get_clubs_count(student_id):
-    """
-    Получить количество кружков, на которые записан студент.
-
-    Returns:
-        int: количество
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -55,19 +34,7 @@ def get_clubs_count(student_id):
         conn.close()
 
 
-# ============================================================
-# 3. СРЕДНИЙ БАЛЛ
-# ============================================================
-
 def get_average_grade(student_id):
-    """
-    Получить средний балл студента.
-
-    Считает среднее по колонке grade в attendance.
-
-    Returns:
-        float | None: средний балл или None, если оценок нет
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -85,20 +52,7 @@ def get_average_grade(student_id):
         conn.close()
 
 
-# ============================================================
-# 4. ПРОЦЕНТ ПОСЕЩАЕМОСТИ
-# ============================================================
-
 def get_attendance_rate(student_id):
-    """
-    Получить процент посещаемости.
-
-    Формула:
-        (Присутствовал + Опоздал) / Всего × 100%
-
-    Returns:
-        int | None: процент или None, если записей нет
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -119,17 +73,7 @@ def get_attendance_rate(student_id):
         conn.close()
 
 
-# ============================================================
-# 5. КОЛИЧЕСТВО ДОСТИЖЕНИЙ
-# ============================================================
-
 def get_achievements_count(student_id):
-    """
-    Получить количество достижений студента.
-
-    Returns:
-        int: количество
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -143,17 +87,7 @@ def get_achievements_count(student_id):
         conn.close()
 
 
-# ============================================================
-# 6. БЛИЖАЙШИЕ ЗАНЯТИЯ
-# ============================================================
-
 def get_upcoming_lessons(student_id, limit=5):
-    """
-    Получить ближайшие занятия студента.
-
-    Returns:
-        list[dict]: список занятий
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -181,19 +115,7 @@ def get_upcoming_lessons(student_id, limit=5):
         conn.close()
 
 
-# ============================================================
-# 7. РАСПИСАНИЕ
-# ============================================================
-
 def get_schedule(student_id):
-    """
-    Получить расписание студента по клубам.
-
-    Возвращает словарь: {день недели: [(время, клуб, аудитория, преподаватель)]}
-
-    Returns:
-        dict: расписание
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -214,7 +136,6 @@ def get_schedule(student_id):
         )
         rows = cursor.fetchall()
 
-        # Группируем по дню недели
         schedule = {
             "ПОНЕДЕЛЬНИК": [],
             "ВТОРНИК": [],
@@ -223,29 +144,27 @@ def get_schedule(student_id):
             "ПЯТНИЦА": [],
         }
 
+        day_map = {
+            "Пн": "ПОНЕДЕЛЬНИК",
+            "Вт": "ВТОРНИК",
+            "Ср": "СРЕДА",
+            "Чт": "ЧЕТВЕРГ",
+            "Пт": "ПЯТНИЦА",
+        }
+
         for row in rows:
             sched = row["schedule"] or ""
-            # Формат: "Пн 15:00-16:30, Ср 15:00-16:30"
             parts = sched.split(",")
             for part in parts:
                 part = part.strip()
                 if not part:
                     continue
-                # Разбираем "Пн 15:00-16:30"
                 tokens = part.split()
                 if len(tokens) < 2:
                     continue
                 day_short = tokens[0]
                 time_str = tokens[1] if len(tokens) > 1 else ""
 
-                # Определяем полный день
-                day_map = {
-                    "Пн": "ПОНЕДЕЛЬНИК",
-                    "Вт": "ВТОРНИК",
-                    "Ср": "СРЕДА",
-                    "Чт": "ЧЕТВЕРГ",
-                    "Пт": "ПЯТНИЦА",
-                }
                 day_full = day_map.get(day_short)
                 if not day_full:
                     continue
@@ -262,17 +181,7 @@ def get_schedule(student_id):
         conn.close()
 
 
-# ============================================================
-# 8. ОЦЕНКИ
-# ============================================================
-
 def get_grades(student_id):
-    """
-    Получить оценки студента по кружкам.
-
-    Returns:
-        list[dict]: список оценок с датой, темой, оценкой
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -282,32 +191,44 @@ def get_grades(student_id):
                    l.topic,
                    a.grade,
                    a.comment,
+                   a.status,
                    c.name AS club_name,
                    t.surname || ' ' || t.name AS teacher_fio
                FROM attendance a
                JOIN lessons l ON a.lesson_id = l.id
                JOIN clubs c ON l.club_id = c.id
                JOIN teachers t ON c.teacher_id = t.id
-               WHERE a.student_id = ? AND a.grade IS NOT NULL
+               WHERE a.student_id = ?
                ORDER BY c.name, l.date DESC""",
             (student_id,)
         )
-        return [dict(r) for r in cursor.fetchall()]
+        rows = [dict(r) for r in cursor.fetchall()]
+
+        # Считаем посещаемость по каждому кружку
+        club_stats = {}
+        for r in rows:
+            club = r["club_name"]
+            if club not in club_stats:
+                club_stats[club] = {"total": 0, "present": 0}
+            club_stats[club]["total"] += 1
+            if r["status"] != "НБ":
+                club_stats[club]["present"] += 1
+
+        # Прикрепляем посещаемость к каждой записи
+        for r in rows:
+            club = r["club_name"]
+            stats = club_stats[club]
+            if stats["total"] > 0:
+                r["attendance"] = round(stats["present"] * 100 / stats["total"])
+            else:
+                r["attendance"] = 0
+
+        return rows
     finally:
         conn.close()
 
 
-# ============================================================
-# 9. СПИСОК ПРЕПОДАВАТЕЛЕЙ
-# ============================================================
-
 def get_teachers_list():
-    """
-    Получить список всех преподавателей.
-
-    Returns:
-        list[dict]: список преподавателей
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -327,20 +248,7 @@ def get_teachers_list():
         conn.close()
 
 
-# ============================================================
-# 10. СПИСОК ГРУППЫ
-# ============================================================
-
 def get_groupmates(group):
-    """
-    Получить список студентов группы.
-
-    Args:
-        group: название группы (например, "ИСП-34")
-
-    Returns:
-        list[dict]: список студентов
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -360,17 +268,7 @@ def get_groupmates(group):
         conn.close()
 
 
-# ============================================================
-# 11. ДОСТИЖЕНИЯ
-# ============================================================
-
 def get_achievements(student_id):
-    """
-    Получить достижения студента.
-
-    Returns:
-        list[dict]: список достижений
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -383,6 +281,58 @@ def get_achievements(student_id):
                ORDER BY date DESC""",
             (student_id,)
         )
+        return [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
+
+
+def get_student_lessons_filtered(student_id, period="month"):
+    from datetime import date, timedelta
+
+    today = date.today()
+
+    if period == "today":
+        date_from = today.isoformat()
+        date_to = today.isoformat()
+    elif period == "week":
+        monday = today - timedelta(days=today.weekday())
+        sunday = monday + timedelta(days=6)
+        date_from = monday.isoformat()
+        date_to = sunday.isoformat()
+    elif period == "month":
+        first = today.replace(day=1)
+        if today.month == 12:
+            last = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            last = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+        date_from = first.isoformat()
+        date_to = last.isoformat()
+    else:
+        date_from = "1900-01-01"
+        date_to = "2100-01-01"
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                l.date,
+                l.topic,
+                l.type,
+                l.hours,
+                c.name AS club_name,
+                c.room,
+                t.surname || ' ' || t.name AS teacher_fio
+            FROM lessons l
+            JOIN clubs c ON l.club_id = c.id
+            JOIN teachers t ON c.teacher_id = t.id
+            WHERE c.id IN (
+                SELECT club_id FROM enrollments
+                WHERE student_id = ? AND status = 'active'
+            )
+            AND l.date BETWEEN ? AND ?
+            ORDER BY l.date, c.name
+        """, (student_id, date_from, date_to))
         return [dict(r) for r in cursor.fetchall()]
     finally:
         conn.close()

@@ -1,17 +1,10 @@
-
 from database import get_connection
 
 
 def add_grade_to_attendance():
-    """
-    Добавить колонку grade в таблицу attendance.
-    Если колонка уже есть — ничего не делает.
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
-
-        # Проверяем, есть ли колонка grade
         cursor.execute("PRAGMA table_info(attendance)")
         columns = [row["name"] for row in cursor.fetchall()]
 
@@ -29,14 +22,9 @@ def add_grade_to_attendance():
 
 
 def add_comment_to_attendance():
-    """
-    Добавить колонку comment в таблицу attendance.
-    Для примечаний к оценке.
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
-
         cursor.execute("PRAGMA table_info(attendance)")
         columns = [row["name"] for row in cursor.fetchall()]
 
@@ -53,11 +41,45 @@ def add_comment_to_attendance():
         conn.close()
 
 
+def migrate_statuses():
+    """
+    Миграция статусов:
+    - Отсутствовал → НБ
+    - Опоздал → Присутствовал
+    """
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE attendance
+            SET status = 'НБ'
+            WHERE status = 'Отсутствовал'
+        """)
+        count_nb = cursor.rowcount
+
+        cursor.execute("""
+            UPDATE attendance
+            SET status = 'Присутствовал'
+            WHERE status = 'Опоздал'
+        """)
+        count_late = cursor.rowcount
+
+        conn.commit()
+        print(f"Отсутствовал → НБ: {count_nb} записей")
+        print(f"Опоздал → Присутствовал: {count_late} записей")
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка миграции статусов: {e}")
+    finally:
+        conn.close()
+
+
 def run_migrations():
-    """Запустить все миграции."""
     print("Запуск миграций...")
     add_grade_to_attendance()
     add_comment_to_attendance()
+    migrate_statuses()
     print("Миграции завершены.")
 
 

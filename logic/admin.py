@@ -1,20 +1,8 @@
-"""
-Модуль работы с администратором.
-
-Функции для получения статистики, списка пользователей,
-управления пользователями, отчётов.
-"""
-
 import hashlib
 from db.database import get_connection
 
 
-# ============================================================
-# СТАТИСТИКА
-# ============================================================
-
 def get_users_count():
-    """Общее количество пользователей."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -26,7 +14,6 @@ def get_users_count():
 
 
 def get_students_count():
-    """Количество студентов."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -38,7 +25,6 @@ def get_students_count():
 
 
 def get_teachers_count():
-    """Количество преподавателей."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -50,7 +36,6 @@ def get_teachers_count():
 
 
 def get_clubs_count():
-    """Количество кружков и секций."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -61,17 +46,7 @@ def get_clubs_count():
         conn.close()
 
 
-# ============================================================
-# ПОЛЬЗОВАТЕЛИ
-# ============================================================
-
 def get_all_users():
-    """
-    Все пользователи с ФИО и ролью.
-
-    Returns:
-        list[dict]: id, login, role, fio, create_date
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -97,7 +72,6 @@ def get_all_users():
 
 
 def delete_user(user_id, user_login="", admin=None):
-    """Удалить пользователя с логированием."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -117,12 +91,10 @@ def delete_user(user_id, user_login="", admin=None):
 
 
 def create_user(login, password, role):
-    """Создать нового пользователя (без профиля)."""
     conn = get_connection()
     try:
         cursor = conn.cursor()
 
-        # Проверка логина
         cursor.execute("SELECT id FROM users WHERE login = ?", (login,))
         if cursor.fetchone():
             return False
@@ -142,22 +114,29 @@ def create_user(login, password, role):
         conn.close()
 
 
-# ============================================================
-# ОТЧЁТЫ
-# ============================================================
-
-def get_clubs_report():
-    """
-    Сводка по кружкам: количество студентов, средний балл, посещаемость.
-
-    Returns:
-        list[dict]: club, teacher, students, avg_grade, attendance
-    """
+def get_clubs_report(period=None, club_id=None):
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("""
+
+        where_parts = []
+        params = []
+
+        if club_id:
+            where_parts.append("c.id = ?")
+            params.append(club_id)
+
+        if period:
+            where_parts.append("l.date LIKE ?")
+            params.append(f"{period}%")
+
+        where_sql = ""
+        if where_parts:
+            where_sql = "WHERE " + " AND ".join(where_parts)
+
+        query = f"""
             SELECT
+                c.id,
                 c.name AS club,
                 COALESCE(t.surname || ' ' || t.name, '—') AS teacher,
                 COUNT(DISTINCT e.student_id) AS students,
@@ -175,25 +154,64 @@ def get_clubs_report():
             LEFT JOIN lessons l ON c.id = l.club_id
             LEFT JOIN attendance a ON a.lesson_id = l.id
             LEFT JOIN attendance at ON at.lesson_id = l.id
+            {where_sql}
             GROUP BY c.id
             ORDER BY c.name
-        """)
+        """
+
+        cursor.execute(query, params)
         return [dict(r) for r in cursor.fetchall()]
     finally:
         conn.close()
 
 
-# ============================================================
-# ПОСЛЕДНИЕ ДЕЙСТВИЯ (заглушка — логов пока нет)
-# ============================================================
+def get_report_periods():
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT substr(date, 1, 7) AS period
+            FROM lessons
+            WHERE date IS NOT NULL
+            ORDER BY period DESC
+        """)
+        rows = cursor.fetchall()
+
+        month_names = {
+            "01": "Январь", "02": "Февраль", "03": "Март",
+            "04": "Апрель", "05": "Май", "06": "Июнь",
+            "07": "Июль", "08": "Август", "09": "Сентябрь",
+            "10": "Октябрь", "11": "Ноябрь", "12": "Декабрь",
+        }
+
+        result = []
+        for row in rows:
+            period = row["period"]
+            if not period:
+                continue
+            year, month = period.split("-")
+            label = f"{month_names.get(month, month)} {year}"
+            result.append({"value": period, "label": label})
+
+        return result
+    finally:
+        conn.close()
+
+
+def get_all_clubs_for_filter():
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, name
+            FROM clubs
+            ORDER BY name
+        """)
+        return [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
 
 def get_recent_actions(limit=5):
-    """
-    Последние действия пользователей из audit_log.
-
-    Returns:
-        list[dict]: date, user, action
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -215,19 +233,8 @@ def get_recent_actions(limit=5):
     finally:
         conn.close()
 
-# ============================================================
-# СОЗДАНИЕ ПОЛЬЗОВАТЕЛЯ С ПРОФИЛЕМ
-# ============================================================
-def log_action(user_id, user_login, action, details=""):
-    """
-    Записать действие в audit_log.
 
-    Args:
-        user_id: id пользователя
-        user_login: логин пользователя
-        action: краткое действие («Добавлен пользователь»)
-        details: подробности («Иванов Иван, роль: teacher»)
-    """
+def log_action(user_id, user_login, action, details=""):
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -244,12 +251,9 @@ def log_action(user_id, user_login, action, details=""):
     finally:
         conn.close()
 
+
 def create_user_with_profile(fio, login, password, role,
                              group="", direction="", admin=None):
-    """
-    Создать пользователя вместе с профилем.
-    С логированием.
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -287,7 +291,6 @@ def create_user_with_profile(fio, login, password, role,
 
         conn.commit()
 
-        # Логируем
         if admin:
             role_ru = {
                 "student": "студент",
@@ -309,18 +312,9 @@ def create_user_with_profile(fio, login, password, role,
         return False
     finally:
         conn.close()
-        
-# ============================================================
-# КРУЖКИ (для админа)
-# ============================================================
+
 
 def get_all_clubs():
-    """
-    Все кружки с ФИО преподавателя.
-
-    Returns:
-        list[dict]: id, name, type, teacher_fio, schedule, room, teacher_id
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -346,12 +340,6 @@ def get_all_clubs():
 
 
 def get_all_teachers_for_select():
-    """
-    Список преподавателей для выпадающего списка.
-
-    Returns:
-        list[dict]: id, fio
-    """
     conn = get_connection()
     try:
         cursor = conn.cursor()
@@ -378,7 +366,6 @@ def create_club(name, type_, teacher_id, schedule, room, admin=None):
         )
         conn.commit()
 
-        # Логируем
         if admin:
             log_action(
                 user_id=admin.get("id"),
@@ -440,5 +427,141 @@ def delete_club(club_id, club_name="", admin=None):
         return cursor.rowcount > 0
     finally:
         conn.close()
-    
-    
+
+def get_backups_dir():
+    from pathlib import Path
+
+    base = Path(__file__).parent.parent
+    backups = base / "backups"
+    backups.mkdir(exist_ok=True)
+    return backups
+
+
+def backup_db():
+    import shutil
+    from datetime import datetime
+    from pathlib import Path
+
+    base = Path(__file__).parent.parent
+    src = base / "ejksr.db"
+
+    if not src.exists():
+        return None
+
+    backups = get_backups_dir()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dst = backups / f"ejksr_{timestamp}.db"
+
+    try:
+        shutil.copy(src, dst)
+        return str(dst)
+    except Exception as e:
+        print(f"Ошибка создания резервной копии: {e}")
+        return None
+
+
+def get_backups_list():
+    from pathlib import Path
+
+    backups = get_backups_dir()
+    files = sorted(backups.glob("ejksr_*.db"), reverse=True)
+
+    result = []
+    for f in files:
+        stat = f.stat()
+        result.append({
+            "filename": f.name,
+            "path": str(f),
+            "size_kb": round(stat.st_size / 1024, 1),
+        })
+    return result
+
+
+def restore_db(filename):
+    import shutil
+    from pathlib import Path
+
+    backups = get_backups_dir()
+    src = backups / filename
+
+    if not src.exists():
+        return False
+
+    base = Path(__file__).parent.parent
+    dst = base / "ejksr.db"
+
+    try:
+        shutil.copy(src, dst)
+        return True
+    except Exception as e:
+        print(f"Ошибка восстановления: {e}")
+        return False
+
+def get_backups_dir():
+    from pathlib import Path
+
+    base = Path(__file__).parent.parent
+    backups = base / "backups"
+    backups.mkdir(exist_ok=True)
+    return backups
+
+
+def backup_db():
+    import shutil
+    from datetime import datetime
+    from pathlib import Path
+
+    base = Path(__file__).parent.parent
+    src = base / "ejksr.db"
+
+    if not src.exists():
+        return None
+
+    backups = get_backups_dir()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dst = backups / f"ejksr_{timestamp}.db"
+
+    try:
+        shutil.copy(src, dst)
+        return str(dst)
+    except Exception as e:
+        print(f"Ошибка создания резервной копии: {e}")
+        return None
+
+
+def get_backups_list():
+    from pathlib import Path
+
+    backups = get_backups_dir()
+    files = sorted(backups.glob("ejksr_*.db"), reverse=True)
+
+    result = []
+    for f in files:
+        stat = f.stat()
+        result.append({
+            "filename": f.name,
+            "path": str(f),
+            "size_kb": round(stat.st_size / 1024, 1),
+        })
+    return result
+
+
+def restore_db(filename):
+    import shutil
+    from pathlib import Path
+
+    backups = get_backups_dir()
+    src = backups / filename
+
+    if not src.exists():
+        return False
+
+    base = Path(__file__).parent.parent
+    dst = base / "ejksr.db"
+
+    try:
+        shutil.copy(src, dst)
+        return True
+    except Exception as e:
+        print(f"Ошибка восстановления: {e}")
+        return False

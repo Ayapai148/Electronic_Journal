@@ -1,15 +1,3 @@
-"""
-Панель преподавателя (Рисунки 5, 6, 8, 9, 10 из отчёта).
-
-Единый фрейм со всеми страницами:
-- Панель управления
-- Мои кружки
-- Журнал (таблица студентов × занятия, редактирование оценок)
-- Посещаемость
-- Достижения
-- Расписание
-"""
-
 import customtkinter as ctk
 from tkinter import messagebox
 from ui.theme import (
@@ -18,8 +6,6 @@ from ui.theme import (
     MENU_TEXT, BORDER
 )
 
-
-# Ширины колонок для таблиц
 COL_DATE = 140
 COL_TIME = 150
 COL_TOPIC = 320
@@ -36,7 +22,6 @@ COL_RESULT = 200
 
 
 class TeacherApp(ctk.CTkFrame):
-    """Фрейм преподавателя со всеми страницами."""
 
     def __init__(self, parent, user, on_logout):
         super().__init__(parent, fg_color=CONTENT_BG)
@@ -44,16 +29,13 @@ class TeacherApp(ctk.CTkFrame):
         self.user = user
         self.on_logout = on_logout
 
-        # Профиль преподавателя
         from logic.teacher import get_teacher_by_user_id
         self.teacher = get_teacher_by_user_id(user["id"])
 
         self.current_page = "dashboard"
 
-        # Шапка
         self._build_header()
 
-        # Layout
         layout = ctk.CTkFrame(self, fg_color="transparent")
         layout.pack(fill="both", expand=True)
 
@@ -64,10 +46,6 @@ class TeacherApp(ctk.CTkFrame):
                           padx=32, pady=28)
 
         self.show_page("dashboard")
-
-    # ============================================================
-    # ШАПКА
-    # ============================================================
 
     def _build_header(self):
         header = ctk.CTkFrame(self, height=60,
@@ -88,13 +66,9 @@ class TeacherApp(ctk.CTkFrame):
                       command=self.on_logout).pack(side="right", padx=24)
 
         ctk.CTkLabel(header,
-                     text=f"{self.user.get('login', 'Преподаватель')}  •  Преподаватель",
+                     text=f"{self.user.get('login', 'Преподаватель')}  Преподаватель",
                      font=("Inter", 13),
                      text_color="#FFFFFF").pack(side="right", padx=16)
-
-    # ============================================================
-    # САЙДБАР
-    # ============================================================
 
     def _build_sidebar(self, parent):
         sidebar = ctk.CTkFrame(parent, width=240,
@@ -108,7 +82,6 @@ class TeacherApp(ctk.CTkFrame):
             ("Панель управления", "dashboard"),
             ("Мои кружки", "clubs"),
             ("Журнал", "journal"),
-            ("Посещаемость", "attendance"),
             ("Достижения", "achievements"),
             ("Расписание", "schedule"),
         ]
@@ -134,10 +107,6 @@ class TeacherApp(ctk.CTkFrame):
                 font=("Inter", 14, "bold" if is_active else "normal")
             )
 
-    # ============================================================
-    # ПЕРЕКЛЮЧЕНИЕ
-    # ============================================================
-
     def show_page(self, page):
         self.current_page = page
         self._update_menu()
@@ -151,16 +120,10 @@ class TeacherApp(ctk.CTkFrame):
             self._show_clubs()
         elif page == "journal":
             self._show_journal()
-        elif page == "attendance":
-            self._show_attendance()
         elif page == "achievements":
             self._show_achievements()
         elif page == "schedule":
             self._show_schedule()
-
-    # ============================================================
-    # ПАНЕЛЬ УПРАВЛЕНИЯ
-    # ============================================================
 
     def _show_dashboard(self):
         from logic.teacher import (
@@ -191,7 +154,6 @@ class TeacherApp(ctk.CTkFrame):
 
         tid = self.teacher["id"]
 
-        # Карточки
         clubs = get_teacher_clubs(tid)
         students = get_teacher_students_count(tid)
         lessons = get_teacher_lessons_count(tid)
@@ -221,7 +183,6 @@ class TeacherApp(ctk.CTkFrame):
                          text_color=TEXT_BLUE,
                          anchor="w").pack(anchor="w", padx=20, pady=(0, 20))
 
-        # Занятия
         upcoming = get_teacher_upcoming_lessons(tid)
 
         panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
@@ -270,10 +231,6 @@ class TeacherApp(ctk.CTkFrame):
                 ctk.CTkFrame(panel, height=1,
                              fg_color="#F1F5F9").pack(fill="x")
 
-    # ============================================================
-    # МОИ КРУЖКИ
-    # ============================================================
-
     def _show_clubs(self):
         from logic.teacher import get_teacher_clubs_full
 
@@ -310,7 +267,13 @@ class TeacherApp(ctk.CTkFrame):
                       fg_color="#2563EB", hover_color="#1D4ED8",
                       height=32, corner_radius=8,
                       font=("Inter", 12, "bold"),
-                      command=self._on_add_club).pack(side="right")
+                      command=self._on_add_club).pack(side="right", padx=(0, 8))
+
+        ctk.CTkButton(h, text="+ Добавить группу",
+                      fg_color="#16A34A", hover_color="#15803D",
+                      height=32, corner_radius=8,
+                      font=("Inter", 12, "bold"),
+                      command=self._on_add_group_to_club).pack(side="right")
 
         ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
 
@@ -320,17 +283,21 @@ class TeacherApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=40)
             return
 
+        scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent",
+                                        scrollbar_button_color="#CBD5E1")
+        scroll.pack(fill="both", expand=True)
+
         columns = [
             ("Название", 240),
             ("Тип", 140),
             ("Расписание", 280),
             ("Аудитория", 120),
-            ("Действия", 280),
+            ("Действия", 200),
         ]
 
-        # Заголовки
-        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
+        head = ctk.CTkFrame(scroll, fg_color="#F8FAFC", corner_radius=0)
         head.pack(fill="x")
+
         for col_idx, (title, width) in enumerate(columns):
             head.grid_columnconfigure(col_idx, weight=0, minsize=width)
             ctk.CTkLabel(head, text=title,
@@ -340,11 +307,6 @@ class TeacherApp(ctk.CTkFrame):
                 row=0, column=col_idx,
                 sticky="w", padx=14, pady=11
             )
-
-        # Прокрутка
-        scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent",
-                                        scrollbar_button_color="#CBD5E1")
-        scroll.pack(fill="both", expand=True)
 
         for r_idx, c in enumerate(clubs):
             row = ctk.CTkFrame(scroll, fg_color="transparent")
@@ -369,16 +331,8 @@ class TeacherApp(ctk.CTkFrame):
                     sticky="w", padx=14, pady=11
                 )
 
-            # Действия
             actions = ctk.CTkFrame(row, fg_color="transparent")
             actions.grid(row=0, column=4, sticky="w", padx=14, pady=11)
-
-            ctk.CTkButton(actions, text="студенты",
-                          fg_color="#DBEAFE", hover_color="#BFDBFE",
-                          text_color="#1E40AF",
-                          width=80, height=28,
-                          command=lambda club=c: self._on_manage_students(club)
-                          ).pack(side="left", padx=(0, 4))
 
             ctk.CTkButton(actions, text="изменить",
                           fg_color="transparent", border_width=1,
@@ -402,7 +356,6 @@ class TeacherApp(ctk.CTkFrame):
                              fg_color="#F1F5F9").pack(fill="x")
 
     def _on_add_club(self):
-        """Открыть модалку добавления кружка."""
         dialog = TeacherClubDialog(
             self,
             teacher_id=self.teacher["id"],
@@ -412,7 +365,6 @@ class TeacherApp(ctk.CTkFrame):
         dialog.grab_set()
 
     def _on_edit_club(self, club):
-        """Открыть модалку редактирования."""
         dialog = TeacherClubDialog(
             self,
             teacher_id=self.teacher["id"],
@@ -422,7 +374,6 @@ class TeacherApp(ctk.CTkFrame):
         dialog.grab_set()
 
     def _on_delete_club(self, club_id, club_name):
-        """Удалить кружок."""
         from logic.teacher import delete_teacher_club
 
         confirm = messagebox.askyesno(
@@ -440,24 +391,17 @@ class TeacherApp(ctk.CTkFrame):
             messagebox.showerror("Ошибка", "Не удалось удалить")
 
     def _reload_clubs(self):
-        """Перезагрузить страницу кружков."""
         self.show_page("clubs")
 
-    def _on_manage_students(self, club):
-        """Открыть модалку управления студентами кружка."""
-        dialog = ManageStudentsDialog(
+    def _on_add_group_to_club(self):
+        dialog = AddGroupToClubDialog(
             self,
-            club=club,
+            teacher_id=self.teacher["id"],
             on_success=self._reload_clubs
         )
         dialog.grab_set()
 
-    # ============================================================
-    # ЖУРНАЛ
-    # ============================================================
-
     def _show_journal(self):
-        """Журнал оценок — таблица студентов × занятия."""
         from logic.teacher import get_teacher_clubs_full
 
         ctk.CTkLabel(self.content, text="Журнал",
@@ -485,7 +429,6 @@ class TeacherApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=60)
             return
 
-        # --- Верхняя панель ---
         top = ctk.CTkFrame(self.content, fg_color=CARD_BG,
                            corner_radius=12, border_width=1,
                            border_color=BORDER)
@@ -502,7 +445,7 @@ class TeacherApp(ctk.CTkFrame):
         club_names = [c["name"] for c in clubs]
         self._journal_club_var = ctk.StringVar(value=club_names[0])
 
-        club_menu = ctk.CTkOptionMenu(
+        ctk.CTkOptionMenu(
             top_inner,
             values=club_names,
             variable=self._journal_club_var,
@@ -513,8 +456,7 @@ class TeacherApp(ctk.CTkFrame):
             height=36, corner_radius=8,
             width=250,
             command=lambda _: self._reload_journal_table()
-        )
-        club_menu.pack(side="left", padx=(0, 16))
+        ).pack(side="left", padx=(0, 16))
 
         ctk.CTkButton(
             top_inner, text="+ Добавить занятие",
@@ -524,7 +466,6 @@ class TeacherApp(ctk.CTkFrame):
             command=self._on_add_lesson
         ).pack(side="right")
 
-        # --- Контейнер для таблицы ---
         self._journal_table_frame = ctk.CTkFrame(self.content,
                                                   fg_color="transparent")
         self._journal_table_frame.pack(fill="both", expand=True)
@@ -532,7 +473,6 @@ class TeacherApp(ctk.CTkFrame):
         self._reload_journal_table()
 
     def _reload_journal_table(self):
-        """Перерисовать таблицу журнала."""
         from logic.teacher import (
             get_students_by_club,
             get_lessons_by_club_sorted,
@@ -573,6 +513,23 @@ class TeacherApp(ctk.CTkFrame):
                              border_color=BORDER)
         panel.pack(fill="both", expand=True)
 
+        top_bar = ctk.CTkFrame(panel, fg_color="transparent")
+        top_bar.pack(fill="x", padx=14, pady=(12, 8))
+
+        ctk.CTkLabel(top_bar, text="Журнал оценок",
+                     font=("Inter", 14, "bold"),
+                     text_color=TEXT_DARK).pack(side="left")
+
+        ctk.CTkButton(
+            top_bar, text="+ Добавить группу",
+            fg_color="#16A34A", hover_color="#15803D",
+            height=32, corner_radius=8,
+            font=("Inter", 12, "bold"),
+            command=self._on_add_group_to_lesson
+        ).pack(side="right")
+
+        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
+
         h_scroll = ctk.CTkScrollableFrame(
             panel,
             orientation="horizontal",
@@ -586,11 +543,11 @@ class TeacherApp(ctk.CTkFrame):
         COL_DATE = 100
         COL_AVG = 110
         COL_FINAL = 100
+        COL_ATT = 110
 
         table = ctk.CTkFrame(h_scroll, fg_color="transparent")
         table.pack(fill="both", expand=True)
 
-        # --- Заголовки ---
         table.grid_columnconfigure(0, weight=0, minsize=COL_STUDENT)
 
         head_student = ctk.CTkFrame(table, fg_color="#F8FAFC",
@@ -613,12 +570,13 @@ class TeacherApp(ctk.CTkFrame):
                          text_color=MENU_TEXT,
                          anchor="center").pack(fill="x", padx=4, pady=11)
 
-        # Колонки «Средний» и «Итог»
         col_avg = len(lessons) + 1
         col_final = len(lessons) + 2
+        col_att = len(lessons) + 3
 
         table.grid_columnconfigure(col_avg, weight=0, minsize=COL_AVG)
         table.grid_columnconfigure(col_final, weight=0, minsize=COL_FINAL)
+        table.grid_columnconfigure(col_att, weight=0, minsize=COL_ATT)
 
         head_avg = ctk.CTkFrame(table, fg_color="#F8FAFC", corner_radius=0)
         head_avg.grid(row=0, column=col_avg, sticky="nsew")
@@ -634,7 +592,13 @@ class TeacherApp(ctk.CTkFrame):
                      text_color=MENU_TEXT,
                      anchor="center").pack(fill="x", padx=4, pady=11)
 
-        # --- Данные ---
+        head_att = ctk.CTkFrame(table, fg_color="#F8FAFC", corner_radius=0)
+        head_att.grid(row=0, column=col_att, sticky="nsew")
+        ctk.CTkLabel(head_att, text="Посещ.",
+                     font=("Inter", 12, "bold"),
+                     text_color=MENU_TEXT,
+                     anchor="center").pack(fill="x", padx=4, pady=11)
+
         for r_idx, student in enumerate(students, start=1):
             cell_student = ctk.CTkFrame(table, fg_color="transparent")
             cell_student.grid(row=r_idx, column=0, sticky="nsew")
@@ -649,25 +613,25 @@ class TeacherApp(ctk.CTkFrame):
 
                 grade = info["grade"] if info else None
                 status = info["status"] if info else None
-                comment = info.get("comment") if info else None
-
-                bg, text_color = self._cell_color(grade, status)
 
                 if grade is not None:
                     text = str(grade)
+                    text_color = "#1E293B"
+                elif status == "НБ":
+                    text = "НБ"
+                    text_color = "#94A3B8"
                 else:
                     text = "—"
-
-                if comment:
-                    text += " *"
+                    text_color = "#94A3B8"
 
                 cell = ctk.CTkFrame(table, fg_color="transparent")
                 cell.grid(row=r_idx, column=col_idx, sticky="nsew")
 
                 ctk.CTkButton(
                     cell, text=text,
-                    fg_color=bg, hover_color=bg,
+                    fg_color="#FFFFFF", hover_color="#F1F5F9",
                     text_color=text_color,
+                    border_width=1, border_color="#E2E8F0",
                     width=70, height=36,
                     corner_radius=6,
                     font=("Inter", 13, "bold"),
@@ -675,9 +639,10 @@ class TeacherApp(ctk.CTkFrame):
                         self._on_edit_grade(s, l)
                 ).pack(padx=8, pady=6)
 
-            # Средний
             info_avg = averages.get(student["id"])
             avg_text = f"{info_avg['avg']:.1f}" if info_avg else "—"
+            final_text = str(info_avg["final"]) if info_avg else "—"
+            att_text = f"{info_avg['attendance']}%" if info_avg else "—"
 
             cell_avg = ctk.CTkFrame(table, fg_color="transparent")
             cell_avg.grid(row=r_idx, column=col_avg, sticky="nsew")
@@ -686,9 +651,6 @@ class TeacherApp(ctk.CTkFrame):
                          text_color="#1E293B",
                          anchor="center").pack(fill="x", padx=8, pady=8)
 
-            # Итог
-            final_text = str(info_avg["final"]) if info_avg else "—"
-
             cell_final = ctk.CTkFrame(table, fg_color="transparent")
             cell_final.grid(row=r_idx, column=col_final, sticky="nsew")
             ctk.CTkLabel(cell_final, text=final_text,
@@ -696,8 +658,14 @@ class TeacherApp(ctk.CTkFrame):
                          text_color="#1E293B",
                          anchor="center").pack(fill="x", padx=8, pady=8)
 
+            cell_att = ctk.CTkFrame(table, fg_color="transparent")
+            cell_att.grid(row=r_idx, column=col_att, sticky="nsew")
+            ctk.CTkLabel(cell_att, text=att_text,
+                         font=("Inter", 13, "bold"),
+                         text_color="#1E293B",
+                         anchor="center").pack(fill="x", padx=8, pady=8)
+
     def _format_date_short(self, date_str):
-        """2026-10-15 → 15.10"""
         if not date_str:
             return "—"
         parts = date_str.split("-")
@@ -705,23 +673,7 @@ class TeacherApp(ctk.CTkFrame):
             return f"{parts[2]}.{parts[1]}"
         return date_str
 
-    def _cell_color(self, grade, status):
-        """Цвет ячейки."""
-        if grade == 5:
-            return "#DCFCE7", "#166534"
-        elif grade == 4:
-            return "#DBEAFE", "#1E40AF"
-        elif grade == 3:
-            return "#FEF9C3", "#854D0E"
-        elif grade == 2:
-            return "#FEE2E2", "#991B1B"
-        elif status == "Отсутствовал":
-            return "#F1F5F9", "#94A3B8"
-        else:
-            return "#FFFFFF", "#94A3B8"
-
     def _on_edit_grade(self, student, lesson):
-        """Открыть модалку редактирования оценки."""
         dialog = EditGradeDialog(
             self,
             student=student,
@@ -731,7 +683,6 @@ class TeacherApp(ctk.CTkFrame):
         dialog.grab_set()
 
     def _on_add_lesson(self):
-        """Открыть модалку добавления занятия."""
         club_name = self._journal_club_var.get()
         club = next((c for c in self._journal_clubs
                      if c["name"] == club_name), None)
@@ -745,263 +696,29 @@ class TeacherApp(ctk.CTkFrame):
         )
         dialog.grab_set()
 
-    # ============================================================
-    # ПОСЕЩАЕМОСТЬ
-    # ============================================================
-
-    def _show_attendance(self):
-        """Посещаемость — выбор занятия + прокрутка."""
-        from logic.teacher import get_teacher_clubs_full
-
-        ctk.CTkLabel(self.content, text="Посещаемость",
-                     font=("Inter", 22, "bold"),
-                     text_color=TEXT_DARK, anchor="w").pack(fill="x")
-
-        ctk.CTkLabel(self.content,
-                     text="Отметка посещаемости по занятиям",
-                     font=("Inter", 13), text_color=TEXT_GRAY,
-                     anchor="w").pack(fill="x", pady=(4, 24))
-
-        if not self.teacher:
-            ctk.CTkLabel(self.content,
-                         text="Нет данных о преподавателе",
-                         font=("Inter", 16),
-                         text_color="#94A3B8").pack(pady=60)
-            return
-
-        clubs = get_teacher_clubs_full(self.teacher["id"])
-
-        if not clubs:
-            ctk.CTkLabel(self.content,
-                         text="Нет кружков",
-                         font=("Inter", 16),
-                         text_color="#94A3B8").pack(pady=60)
-            return
-
-        # --- Верхняя панель: выбор кружка ---
-        top = ctk.CTkFrame(self.content, fg_color=CARD_BG,
-                           corner_radius=12, border_width=1,
-                           border_color=BORDER)
-        top.pack(fill="x", pady=(0, 16))
-
-        top_inner = ctk.CTkFrame(top, fg_color="transparent")
-        top_inner.pack(fill="x", padx=22, pady=16)
-
-        ctk.CTkLabel(top_inner, text="Кружок:",
-                     font=("Inter", 13, "bold"),
-                     text_color=TEXT_DARK).pack(side="left", padx=(0, 8))
-
-        self._att_clubs = clubs
-        club_names = [c["name"] for c in clubs]
-        self._att_club_var = ctk.StringVar(value=club_names[0])
-
-        ctk.CTkOptionMenu(
-            top_inner,
-            values=club_names,
-            variable=self._att_club_var,
-            fg_color="#F8FAFC",
-            button_color="#CBD5E1",
-            text_color="#1E293B",
-            font=("Inter", 13),
-            height=36, corner_radius=8,
-            width=250,
-            command=lambda _: self._reload_attendance_lessons()
-        ).pack(side="left")
-
-        # --- Контейнер для выбора занятия ---
-        self._att_lessons_frame = ctk.CTkFrame(self.content,
-                                                fg_color="transparent")
-        self._att_lessons_frame.pack(fill="x", pady=(0, 16))
-
-        # --- Контейнер для таблицы ---
-        self._att_table_frame = ctk.CTkFrame(self.content,
-                                              fg_color="transparent")
-        self._att_table_frame.pack(fill="both", expand=True)
-
-        # Загружаем занятия первого кружка
-        self._reload_attendance_lessons()
-
-    def _reload_attendance_lessons(self):
-        """Перерисовать панель выбора занятия и таблицу."""
-        for w in self._att_lessons_frame.winfo_children():
-            w.destroy()
-        for w in self._att_table_frame.winfo_children():
-            w.destroy()
-
+    def _on_add_group_to_lesson(self):
         from logic.teacher import get_lessons_by_club_sorted
 
-        club_name = self._att_club_var.get()
-        club = next((c for c in self._att_clubs
+        club_name = self._journal_club_var.get()
+        club = next((c for c in self._journal_clubs
                      if c["name"] == club_name), None)
         if not club:
             return
 
         lessons = get_lessons_by_club_sorted(club["id"])
-
         if not lessons:
-            ctk.CTkLabel(self._att_lessons_frame,
-                         text="Нет занятий для этого кружка",
-                         font=("Inter", 14),
-                         text_color="#94A3B8").pack(pady=20)
+            messagebox.showwarning("Ошибка", "Сначала создайте занятие")
             return
 
-        # --- Панель выбора занятия ---
-        lesson_panel = ctk.CTkFrame(self._att_lessons_frame,
-                                     fg_color=CARD_BG,
-                                     corner_radius=12,
-                                     border_width=1,
-                                     border_color=BORDER)
-        lesson_panel.pack(fill="x")
-
-        lesson_inner = ctk.CTkFrame(lesson_panel, fg_color="transparent")
-        lesson_inner.pack(fill="x", padx=22, pady=16)
-
-        ctk.CTkLabel(lesson_inner, text="Занятие:",
-                     font=("Inter", 13, "bold"),
-                     text_color=TEXT_DARK).pack(side="left", padx=(0, 8))
-
-        # Формируем список занятий: "15.10.2026 — Сборка манипулятора"
-        self._att_lessons = lessons
-        lesson_labels = [
-            f"{l.get('date', '')} — {l.get('topic', '')}"
-            for l in lessons
-        ]
-
-        # По умолчанию — последнее
-        self._att_lesson_var = ctk.StringVar(value=lesson_labels[-1])
-
-        ctk.CTkOptionMenu(
-            lesson_inner,
-            values=lesson_labels,
-            variable=self._att_lesson_var,
-            fg_color="#F8FAFC",
-            button_color="#CBD5E1",
-            text_color="#1E293B",
-            font=("Inter", 13),
-            height=36, corner_radius=8,
-            width=400,
-            command=lambda _: self._reload_attendance_table()
-        ).pack(side="left")
-
-        # Загружаем таблицу выбранного занятия
-        self._reload_attendance_table()
-
-    def _reload_attendance_table(self):
-        """Перерисовать таблицу посещаемости выбранного занятия."""
-        from logic.teacher import get_attendance_by_lesson
-
-        for w in self._att_table_frame.winfo_children():
-            w.destroy()
-
-        lesson_label = self._att_lesson_var.get()
-        # Ищем занятие по метке
-        lesson = None
-        for l in self._att_lessons:
-            if f"{l.get('date', '')} — {l.get('topic', '')}" == lesson_label:
-                lesson = l
-                break
-
-        if not lesson:
-            return
-
-        attendance = get_attendance_by_lesson(lesson["id"])
-
-        panel = ctk.CTkFrame(self._att_table_frame, fg_color=CARD_BG,
-                             corner_radius=12, border_width=1,
-                             border_color=BORDER)
-        panel.pack(fill="both", expand=True)
-
-        # Заголовок
-        h = ctk.CTkFrame(panel, fg_color="transparent")
-        h.pack(fill="x", padx=22, pady=16)
-        ctk.CTkLabel(h,
-                     text=f"{lesson.get('date', '')} — {lesson.get('topic', '')}",
-                     font=("Inter", 15, "bold"),
-                     text_color=TEXT_DARK).pack(side="left")
-
-        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
-
-        if not attendance:
-            ctk.CTkLabel(panel,
-                         text="Нет записей о посещаемости для этого занятия",
-                         font=("Inter", 14),
-                         text_color="#94A3B8").pack(pady=40)
-            return
-
-        # Заголовки таблицы
-        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
-        head.pack(fill="x")
-        for text, w in [
-            ("Студент", COL_STUDENT),
-            ("Статус", COL_STATUS),
-            ("Оценка", COL_GRADE),
-            ("Примечание", 300),
-        ]:
-            ctk.CTkLabel(head, text=text, width=w,
-                         font=("Inter", 12, "bold"),
-                         text_color=MENU_TEXT,
-                         anchor="w").pack(side="left", padx=14, pady=11)
-
-        # Прокрутка
-        scroll = ctk.CTkScrollableFrame(
-            panel,
-            fg_color="transparent",
-            scrollbar_button_color="#CBD5E1",
-            scrollbar_button_hover_color="#94A3B8",
-            corner_radius=0
+        dialog = AddGroupToLessonDialog(
+            self,
+            club=club,
+            lessons=lessons,
+            on_success=self._reload_journal_table
         )
-        scroll.pack(fill="both", expand=True)
-
-        for r_idx, a in enumerate(attendance):
-            row = ctk.CTkFrame(scroll, fg_color="transparent")
-            row.pack(fill="x")
-
-            # Студент
-            ctk.CTkLabel(row, text=a.get("student_fio", "—"),
-                         width=COL_STUDENT,
-                         font=("Inter", 13),
-                         text_color="#334155",
-                         anchor="w").pack(side="left", padx=14, pady=11)
-
-            # Статус
-            status = a.get("status") or "—"
-            ctk.CTkLabel(row, text=status, width=COL_STATUS,
-                         font=("Inter", 13),
-                         text_color=self._status_color(status),
-                         anchor="w").pack(side="left", padx=14, pady=11)
-
-            # Оценка
-            grade = a.get("grade")
-            grade_text = str(grade) if grade is not None else "—"
-            ctk.CTkLabel(row, text=grade_text, width=COL_GRADE,
-                         font=("Inter", 13, "bold"),
-                         text_color="#1E293B",
-                         anchor="w").pack(side="left", padx=14, pady=11)
-
-            # Примечание
-            comment = a.get("comment") or "—"
-            ctk.CTkLabel(row, text=comment, width=300,
-                         font=("Inter", 13),
-                         text_color="#94A3B8",
-                         anchor="w").pack(side="left", padx=14, pady=11)
-
-            if r_idx < len(attendance) - 1:
-                ctk.CTkFrame(scroll, height=1,
-                             fg_color="#F1F5F9").pack(fill="x")
-
-    def _status_color(self, status):
-        return {
-            "Присутствовал": "#166534",
-            "Отсутствовал": "#991B1B",
-            "Опоздал": "#854D0E",
-        }.get(status, "#475569")
-
-    # ============================================================
-    # ДОСТИЖЕНИЯ
-    # ============================================================
+        dialog.grab_set()
 
     def _show_achievements(self):
-        """Достижения студентов — с горизонтальной прокруткой."""
         from logic.teacher import get_teacher_students_achievements_full
 
         ctk.CTkLabel(self.content, text="Достижения учащихся",
@@ -1022,13 +739,11 @@ class TeacherApp(ctk.CTkFrame):
 
         achievements = get_teacher_students_achievements_full(self.teacher["id"])
 
-        # --- Панель ---
         panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
                              corner_radius=12, border_width=1,
                              border_color=BORDER)
         panel.pack(fill="both", expand=True)
 
-        # Заголовок панели
         h = ctk.CTkFrame(panel, fg_color="transparent")
         h.pack(fill="x", padx=22, pady=16)
         ctk.CTkLabel(h, text="Список достижений",
@@ -1049,40 +764,27 @@ class TeacherApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=60)
             return
 
-        # === ГОРИЗОНТАЛЬНАЯ ПРОКРУТКА ===
         h_scroll = ctk.CTkScrollableFrame(
             panel,
             orientation="horizontal",
             fg_color="transparent",
             scrollbar_button_color="#CBD5E1",
-            scrollbar_button_hover_color="#94A3B8",
-            corner_radius=0,
             height=520
         )
         h_scroll.pack(fill="both", expand=True, padx=4, pady=4)
 
-        # Колонки
-        COL_STUDENT = 240
-        COL_TITLE = 340
-        COL_TYPE = 160
-        COL_LEVEL = 160
-        COL_DATE = 140
-        COL_RESULT = 200
-        COL_ACTION = 120
+        columns = [
+            ("Студент", 240),
+            ("Название", 340),
+            ("Тип", 160),
+            ("Уровень", 160),
+            ("Дата", 140),
+            ("Результат", 200),
+            ("Действия", 120),
+        ]
 
         table = ctk.CTkFrame(h_scroll, fg_color="transparent")
         table.pack(fill="both", expand=True)
-
-        # === Заголовки ===
-        columns = [
-            ("Студент", COL_STUDENT),
-            ("Название", COL_TITLE),
-            ("Тип", COL_TYPE),
-            ("Уровень", COL_LEVEL),
-            ("Дата", COL_DATE),
-            ("Результат", COL_RESULT),
-            ("Действия", COL_ACTION),
-        ]
 
         head = ctk.CTkFrame(table, fg_color="#F8FAFC", corner_radius=0)
         head.pack(fill="x")
@@ -1097,7 +799,6 @@ class TeacherApp(ctk.CTkFrame):
                 sticky="w", padx=14, pady=11
             )
 
-        # === Данные ===
         for r_idx, a in enumerate(achievements):
             row = ctk.CTkFrame(table, fg_color="transparent")
             row.pack(fill="x")
@@ -1123,7 +824,6 @@ class TeacherApp(ctk.CTkFrame):
                     sticky="w", padx=14, pady=11
                 )
 
-            # Кнопка «удалить»
             actions = ctk.CTkFrame(row, fg_color="transparent")
             actions.grid(row=0, column=len(values),
                          sticky="w", padx=14, pady=11)
@@ -1142,7 +842,6 @@ class TeacherApp(ctk.CTkFrame):
                              fg_color="#F1F5F9").pack(fill="x")
 
     def _on_add_achievement(self):
-        """Открыть модалку добавления достижения."""
         dialog = AddAchievementDialog(
             self,
             teacher_id=self.teacher["id"],
@@ -1151,7 +850,6 @@ class TeacherApp(ctk.CTkFrame):
         dialog.grab_set()
 
     def _on_delete_achievement(self, achievement_id, title):
-        """Удалить достижение."""
         from logic.teacher import delete_achievement
 
         confirm = messagebox.askyesno(
@@ -1169,12 +867,7 @@ class TeacherApp(ctk.CTkFrame):
             messagebox.showerror("Ошибка", "Не удалось удалить")
 
     def _reload_achievements(self):
-        """Перезагрузить страницу достижений."""
         self.show_page("achievements")
-
-    # ============================================================
-    # РАСПИСАНИЕ
-    # ============================================================
 
     def _show_schedule(self):
         from logic.teacher import get_teacher_schedule
@@ -1243,12 +936,7 @@ class TeacherApp(ctk.CTkFrame):
                              anchor="w").pack(fill="x", padx=10, pady=(0, 8))
 
 
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ / РЕДАКТИРОВАНИЕ КРУЖКА
-# ============================================================
-
 class TeacherClubDialog(ctk.CTkToplevel):
-    """Модалка добавления/редактирования кружка преподавателем."""
 
     def __init__(self, parent, teacher_id, on_success, club=None):
         super().__init__(parent)
@@ -1372,69 +1060,78 @@ class TeacherClubDialog(ctk.CTkToplevel):
             messagebox.showerror("Ошибка", "Не удалось сохранить")
 
 
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: УПРАВЛЕНИЕ СТУДЕНТАМИ КРУЖКА
-# ============================================================
+class AddGroupToClubDialog(ctk.CTkToplevel):
 
-class ManageStudentsDialog(ctk.CTkToplevel):
-    """Модалка выбора студентов для кружка."""
-
-    def __init__(self, parent, club, on_success):
+    def __init__(self, parent, teacher_id, on_success):
         super().__init__(parent)
 
-        self.club = club
+        self.teacher_id = teacher_id
         self.on_success = on_success
 
-        self.title(f"Студенты — {club.get('name', '')}")
-        self.geometry("600x700")
+        self.title("Добавить группу в кружок")
+        self.geometry("500x400")
         self.resizable(False, False)
         self.configure(fg_color="#FFFFFF")
         self.transient(parent)
 
         card = ctk.CTkFrame(self, fg_color="#FFFFFF")
-        card.pack(fill="both", expand=True, padx=28, pady=24)
+        card.pack(fill="both", expand=True, padx=32, pady=24)
 
-        ctk.CTkLabel(card,
-                     text=f"Студенты кружка «{club.get('name', '')}»",
+        ctk.CTkLabel(card, text="Добавить группу в кружок",
                      font=("Inter", 18, "bold"),
                      text_color="#1E3A8A",
-                     anchor="w").pack(fill="x")
+                     anchor="w").pack(fill="x", pady=(0, 20))
 
-        ctk.CTkLabel(card,
-                     text="Отметьте студентов, которые должны быть записаны",
-                     font=("Inter", 12),
-                     text_color="#64748B",
-                     anchor="w").pack(fill="x", pady=(4, 16))
+        ctk.CTkLabel(card, text="Кружок",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
 
-        self.search_var = ctk.StringVar()
-        self.search_var.trace_add("write", lambda *a: self._filter_students())
+        from logic.teacher import get_teacher_clubs_full
+        clubs = get_teacher_clubs_full(teacher_id)
 
-        search_entry = ctk.CTkEntry(
-            card, placeholder_text="Поиск по ФИО или группе",
-            textvariable=self.search_var,
-            fg_color="#F8FAFC", border_color="#CBD5E1",
-            font=("Inter", 13), height=38, corner_radius=8
-        )
-        search_entry.pack(fill="x", pady=(0, 16))
+        if not clubs:
+            ctk.CTkLabel(card, text="У вас нет кружков",
+                         font=("Inter", 12),
+                         text_color="#94A3B8").pack(fill="x", pady=(0, 20))
+            clubs = []
+            club_labels = ["—"]
+        else:
+            club_labels = [c["name"] for c in clubs]
 
-        from logic.teacher import get_all_students, get_enrolled_students
+        self._clubs = clubs
+        self.club_var = ctk.StringVar(value=club_labels[0])
 
-        self.all_students = get_all_students()
-        enrolled = set(get_enrolled_students(club["id"]))
+        ctk.CTkOptionMenu(
+            card, values=club_labels,
+            variable=self.club_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 14))
 
-        self.checkboxes = {}
+        ctk.CTkLabel(card, text="Группа",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
 
-        scroll = ctk.CTkScrollableFrame(
-            card, fg_color="#F8FAFC",
-            scrollbar_button_color="#CBD5E1",
-            corner_radius=8
-        )
-        scroll.pack(fill="both", expand=True, pady=(0, 16))
+        from logic.teacher import get_all_groups
+        groups = get_all_groups()
 
-        self.scroll = scroll
+        if not groups:
+            ctk.CTkLabel(card, text="Нет групп в системе",
+                         font=("Inter", 12),
+                         text_color="#94A3B8").pack(fill="x", pady=(0, 20))
+            groups = ["—"]
 
-        for s in self.all_students:
-            self._build_student_row(scroll, s, s["id"] in enrolled)
+        self.group_var = ctk.StringVar(value=groups[0])
+        ctk.CTkOptionMenu(
+            card, values=groups,
+            variable=self.group_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 20))
 
         buttons = ctk.CTkFrame(card, fg_color="transparent")
         buttons.pack(fill="x")
@@ -1449,87 +1146,45 @@ class ManageStudentsDialog(ctk.CTkToplevel):
         ).pack(side="left", expand=True, fill="x", padx=(0, 6))
 
         ctk.CTkButton(
-            buttons, text="Сохранить",
-            fg_color="#2563EB", hover_color="#1D4ED8",
+            buttons, text="Добавить",
+            fg_color="#16A34A", hover_color="#15803D",
             text_color="#FFFFFF",
             height=42, corner_radius=8,
             command=self._on_save
         ).pack(side="left", expand=True, fill="x", padx=(6, 0))
 
-    def _build_student_row(self, parent, student, is_enrolled):
-        row = ctk.CTkFrame(parent, fg_color="#FFFFFF", corner_radius=6)
-        row.pack(fill="x", padx=6, pady=3)
-
-        var = ctk.BooleanVar(value=is_enrolled)
-        self.checkboxes[student["id"]] = var
-
-        ctk.CTkCheckBox(
-            row, text="",
-            variable=var,
-            width=24,
-            checkbox_width=22, checkbox_height=22,
-            corner_radius=4,
-            fg_color="#2563EB",
-            hover_color="#1D4ED8"
-        ).pack(side="left", padx=(12, 8), pady=10)
-
-        ctk.CTkLabel(row, text=student.get("fio", "—"),
-                     font=("Inter", 13),
-                     text_color="#334155",
-                     anchor="w").pack(side="left", fill="x",
-                                      expand=True, pady=10)
-
-        ctk.CTkLabel(row, text=student.get("groups") or "—",
-                     font=("Inter", 12),
-                     text_color="#94A3B8",
-                     anchor="e",
-                     width=100).pack(side="right", padx=(8, 12), pady=10)
-
-    def _filter_students(self):
-        query = self.search_var.get().strip().lower()
-
-        for w in self.scroll.winfo_children():
-            w.destroy()
-
-        from logic.teacher import get_enrolled_students
-        enrolled = set(get_enrolled_students(self.club["id"]))
-
-        for s in self.all_students:
-            fio = (s.get("fio") or "").lower()
-            group = (s.get("groups") or "").lower()
-
-            if query and query not in fio and query not in group:
-                continue
-
-            is_enrolled = s["id"] in enrolled
-            if s["id"] in self.checkboxes:
-                is_enrolled = self.checkboxes[s["id"]].get()
-
-            self._build_student_row(self.scroll, s, is_enrolled)
-
     def _on_save(self):
-        from logic.teacher import save_club_enrollments
+        from logic.teacher import enroll_group_to_club
 
-        selected = [
-            sid for sid, var in self.checkboxes.items()
-            if var.get()
-        ]
+        club_name = self.club_var.get()
+        group = self.group_var.get()
 
-        if save_club_enrollments(self.club["id"], selected):
+        if club_name == "—" or group == "—":
+            messagebox.showwarning("Ошибка", "Выберите кружок и группу")
+            return
+
+        club = next((c for c in self._clubs
+                     if c["name"] == club_name), None)
+        if not club:
+            messagebox.showerror("Ошибка", "Кружок не найден")
+            return
+
+        added = enroll_group_to_club(club["id"], group)
+
+        if added > 0:
             messagebox.showinfo("Успех",
-                                f"Записано студентов: {len(selected)}")
+                                f"Добавлено студентов: {added}")
             self.on_success()
             self.destroy()
+        elif added == 0:
+            messagebox.showinfo("Инфо",
+                                "Все студенты группы уже записаны")
+            self.destroy()
         else:
-            messagebox.showerror("Ошибка", "Не удалось сохранить")
+            messagebox.showerror("Ошибка", "Не удалось добавить")
 
-
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: РЕДАКТИРОВАНИЕ ОЦЕНКИ
-# ============================================================
 
 class EditGradeDialog(ctk.CTkToplevel):
-    """Модалка редактирования оценки."""
 
     def __init__(self, parent, student, lesson, on_success):
         super().__init__(parent)
@@ -1539,7 +1194,7 @@ class EditGradeDialog(ctk.CTkToplevel):
         self.on_success = on_success
 
         self.title("Оценка")
-        self.geometry("420x500")
+        self.geometry("420x420")
         self.resizable(False, False)
         self.configure(fg_color="#FFFFFF")
         self.transient(parent)
@@ -1565,11 +1220,9 @@ class EditGradeDialog(ctk.CTkToplevel):
 
         current = self._get_current_attendance(student["id"], lesson["id"])
         current_grade = current.get("grade") if current else None
-        current_status = (current.get("status") if current
-                          else "Присутствовал")
+        current_status = (current.get("status") if current else "")
         current_comment = (current.get("comment") if current else "")
 
-        # Оценка
         ctk.CTkLabel(card, text="Оценка",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -1579,17 +1232,18 @@ class EditGradeDialog(ctk.CTkToplevel):
         grades_frame.pack(fill="x", pady=(0, 16))
 
         self.grade_var = ctk.IntVar(value=current_grade or 0)
+        self.is_nb = ctk.BooleanVar(value=(current_status == "НБ"))
         self.grade_buttons = {}
 
         for grade in [2, 3, 4, 5]:
             btn = ctk.CTkButton(
                 grades_frame, text=str(grade),
-                width=70, height=50,
+                width=60, height=50,
                 corner_radius=8,
                 font=("Inter", 18, "bold"),
                 command=lambda g=grade: self._select_grade(g)
             )
-            btn.pack(side="left", padx=(0, 8))
+            btn.pack(side="left", padx=(0, 6))
             self.grade_buttons[grade] = btn
 
         ctk.CTkButton(
@@ -1597,29 +1251,22 @@ class EditGradeDialog(ctk.CTkToplevel):
             fg_color="transparent", border_width=1,
             border_color="#CBD5E1", text_color="#475569",
             hover_color="#F1F5F9",
-            width=70, height=50, corner_radius=8,
-            font=("Inter", 13),
+            width=60, height=50, corner_radius=8,
+            font=("Inter", 12),
             command=self._reset_grade
-        ).pack(side="left")
+        ).pack(side="left", padx=(0, 6))
 
-        # Статус
-        ctk.CTkLabel(card, text="Посещаемость",
-                     font=("Inter", 12, "bold"),
-                     text_color="#334155",
-                     anchor="w").pack(fill="x", pady=(0, 6))
+        self.nb_btn = ctk.CTkButton(
+            grades_frame, text="НБ",
+            fg_color="#F8FAFC", border_width=1,
+            border_color="#CBD5E1", text_color="#475569",
+            hover_color="#F1F5F9",
+            width=60, height=50, corner_radius=8,
+            font=("Inter", 14, "bold"),
+            command=self._select_nb
+        )
+        self.nb_btn.pack(side="left")
 
-        self.status_var = ctk.StringVar(value=current_status)
-        ctk.CTkOptionMenu(
-            card,
-            values=["Присутствовал", "Отсутствовал", "Опоздал"],
-            variable=self.status_var,
-            fg_color="#F8FAFC", button_color="#CBD5E1",
-            text_color="#1E293B",
-            font=("Inter", 13),
-            height=40, corner_radius=8
-        ).pack(fill="x", pady=(0, 16))
-
-        # Примечание
         ctk.CTkLabel(card, text="Примечание",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -1657,6 +1304,8 @@ class EditGradeDialog(ctk.CTkToplevel):
 
         if current_grade:
             self._select_grade(current_grade)
+        elif current_status == "НБ":
+            self._select_nb()
 
     def _get_current_attendance(self, student_id, lesson_id):
         from db.database import get_connection
@@ -1676,53 +1325,62 @@ class EditGradeDialog(ctk.CTkToplevel):
 
     def _select_grade(self, grade):
         self.grade_var.set(grade)
+        self.is_nb.set(False)
 
-        colors = {
-            5: ("#DCFCE7", "#166534"),
-            4: ("#DBEAFE", "#1E40AF"),
-            3: ("#FEF9C3", "#854D0E"),
-            2: ("#FEE2E2", "#991B1B"),
-        }
+        self.nb_btn.configure(fg_color="#F8FAFC", text_color="#475569",
+                              border_color="#CBD5E1")
 
         for g, btn in self.grade_buttons.items():
             if g == grade:
-                bg, fg = colors[g]
-                btn.configure(fg_color=bg, text_color=fg,
-                              border_width=2, border_color=fg)
+                btn.configure(fg_color="#DBEAFE", text_color="#1E40AF",
+                              border_width=2, border_color="#1E40AF")
             else:
                 btn.configure(fg_color="#F8FAFC", text_color="#475569",
                               border_width=1, border_color="#CBD5E1")
 
     def _reset_grade(self):
         self.grade_var.set(0)
+        self.is_nb.set(False)
+
+        self.nb_btn.configure(fg_color="#F8FAFC", text_color="#475569",
+                              border_color="#CBD5E1")
+
         for btn in self.grade_buttons.values():
             btn.configure(fg_color="#F8FAFC", text_color="#475569",
                           border_width=1, border_color="#CBD5E1")
 
+    def _select_nb(self):
+        self.grade_var.set(0)
+        self.is_nb.set(True)
+
+        for btn in self.grade_buttons.values():
+            btn.configure(fg_color="#F8FAFC", text_color="#475569",
+                          border_width=1, border_color="#CBD5E1")
+
+        self.nb_btn.configure(fg_color="#FEE2E2", text_color="#991B1B",
+                              border_width=2, border_color="#991B1B")
+
     def _on_save(self):
         from logic.teacher import update_grade
 
-        grade = self.grade_var.get()
-        if grade == 0:
+        if self.is_nb.get():
             grade = None
+        else:
+            grade = self.grade_var.get()
+            if grade == 0:
+                grade = None
 
-        status = self.status_var.get()
         comment = self.comment_entry.get().strip()
 
         if update_grade(self.lesson["id"], self.student["id"],
-                        grade, comment, status):
+                        grade, comment):
             self.on_success()
             self.destroy()
         else:
             messagebox.showerror("Ошибка", "Не удалось сохранить")
 
 
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ ЗАНЯТИЯ
-# ============================================================
-
 class AddLessonDialog(ctk.CTkToplevel):
-    """Модалка добавления занятия."""
 
     def __init__(self, parent, club, on_success):
         super().__init__(parent)
@@ -1731,7 +1389,7 @@ class AddLessonDialog(ctk.CTkToplevel):
         self.on_success = on_success
 
         self.title("Добавить занятие")
-        self.geometry("460x520")
+        self.geometry("460x620")
         self.resizable(False, False)
         self.configure(fg_color="#FFFFFF")
         self.transient(parent)
@@ -1767,6 +1425,28 @@ class AddLessonDialog(ctk.CTkToplevel):
         ).pack(fill="x", pady=(0, 14))
 
         self.hours_entry = self._add_field(card, "Часы", "2")
+
+        ctk.CTkLabel(card, text="Группа",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        from logic.teacher import get_all_groups
+        groups = get_all_groups()
+
+        if groups:
+            group_labels = ["Не добавлять"] + groups
+        else:
+            group_labels = ["Нет групп"]
+
+        self.group_var = ctk.StringVar(value=group_labels[0])
+        ctk.CTkOptionMenu(
+            card, values=group_labels,
+            variable=self.group_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 14))
 
         buttons = ctk.CTkFrame(card, fg_color="transparent")
         buttons.pack(fill="x", pady=(8, 0))
@@ -1811,6 +1491,7 @@ class AddLessonDialog(ctk.CTkToplevel):
         topic = self.topic_entry.get().strip()
         type_ = self.type_var.get()
         hours_str = self.hours_entry.get().strip()
+        group_label = self.group_var.get()
 
         if not date or not topic:
             messagebox.showwarning("Ошибка", "Заполните дату и тему")
@@ -1821,23 +1502,147 @@ class AddLessonDialog(ctk.CTkToplevel):
         except ValueError:
             hours = 2
 
-        if create_lesson(self.club["id"], date, topic, type_, hours):
-            messagebox.showinfo("Успех", "Занятие создано")
+        group = None
+        if group_label not in ("Не добавлять", "Нет групп"):
+            group = group_label
+
+        result = create_lesson(
+            self.club["id"], date, topic, type_, hours, group
+        )
+
+        if result:
+            msg = "Занятие создано"
+            if group:
+                msg += f"\nСтуденты группы {group} добавлены"
+            messagebox.showinfo("Успех", msg)
             self.on_success()
             self.destroy()
         else:
             messagebox.showerror("Ошибка", "Не удалось создать занятие")
 
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ ДОСТИЖЕНИЯ
-# ============================================================
 
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ ДОСТИЖЕНИЯ
-# ============================================================
+class AddGroupToLessonDialog(ctk.CTkToplevel):
+
+    def __init__(self, parent, club, lessons, on_success):
+        super().__init__(parent)
+
+        self.club = club
+        self.lessons = lessons
+        self.on_success = on_success
+
+        self.title("Добавить группу в занятие")
+        self.geometry("500x400")
+        self.resizable(False, False)
+        self.configure(fg_color="#FFFFFF")
+        self.transient(parent)
+
+        card = ctk.CTkFrame(self, fg_color="#FFFFFF")
+        card.pack(fill="both", expand=True, padx=32, pady=24)
+
+        ctk.CTkLabel(card, text="Добавить группу в занятие",
+                     font=("Inter", 18, "bold"),
+                     text_color="#1E3A8A",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        ctk.CTkLabel(card, text=f"Кружок: {club.get('name', '')}",
+                     font=("Inter", 12),
+                     text_color="#64748B",
+                     anchor="w").pack(fill="x", pady=(0, 20))
+
+        ctk.CTkLabel(card, text="Занятие",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        self._lessons = lessons
+        lesson_labels = [
+            f"{l.get('date', '')} — {l.get('topic', '')}"
+            for l in lessons
+        ]
+        self.lesson_var = ctk.StringVar(value=lesson_labels[-1])
+
+        ctk.CTkOptionMenu(
+            card, values=lesson_labels,
+            variable=self.lesson_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 14))
+
+        ctk.CTkLabel(card, text="Группа",
+                     font=("Inter", 12, "bold"),
+                     text_color="#334155",
+                     anchor="w").pack(fill="x", pady=(0, 4))
+
+        from logic.teacher import get_all_groups
+        groups = get_all_groups()
+
+        if not groups:
+            ctk.CTkLabel(card, text="Нет групп в системе",
+                         font=("Inter", 12),
+                         text_color="#94A3B8").pack(fill="x", pady=(0, 14))
+            groups = ["—"]
+
+        self.group_var = ctk.StringVar(value=groups[0])
+        ctk.CTkOptionMenu(
+            card, values=groups,
+            variable=self.group_var,
+            fg_color="#F8FAFC", button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13), height=40, corner_radius=8
+        ).pack(fill="x", pady=(0, 20))
+
+        buttons = ctk.CTkFrame(card, fg_color="transparent")
+        buttons.pack(fill="x")
+
+        ctk.CTkButton(
+            buttons, text="Отмена",
+            fg_color="transparent",
+            border_width=1, border_color="#CBD5E1",
+            text_color="#475569", hover_color="#F1F5F9",
+            height=42, corner_radius=8,
+            command=self.destroy
+        ).pack(side="left", expand=True, fill="x", padx=(0, 6))
+
+        ctk.CTkButton(
+            buttons, text="Добавить",
+            fg_color="#16A34A", hover_color="#15803D",
+            text_color="#FFFFFF",
+            height=42, corner_radius=8,
+            command=self._on_save
+        ).pack(side="left", expand=True, fill="x", padx=(6, 0))
+
+    def _on_save(self):
+        from logic.teacher import add_group_to_lesson
+
+        lesson_label = self.lesson_var.get()
+        group = self.group_var.get()
+
+        lesson = None
+        for l in self._lessons:
+            if f"{l.get('date', '')} — {l.get('topic', '')}" == lesson_label:
+                lesson = l
+                break
+
+        if not lesson:
+            messagebox.showerror("Ошибка", "Занятие не найдено")
+            return
+
+        added = add_group_to_lesson(lesson["id"], group, self.club["id"])
+
+        if added > 0:
+            messagebox.showinfo("Успех", f"Добавлено студентов: {added}")
+            self.on_success()
+            self.destroy()
+        elif added == 0:
+            messagebox.showinfo("Инфо",
+                                "Все студенты группы уже добавлены")
+            self.destroy()
+        else:
+            messagebox.showerror("Ошибка", "Не удалось добавить студентов")
+
 
 class AddAchievementDialog(ctk.CTkToplevel):
-    """Модалка добавления достижения студенту (с прокруткой)."""
 
     def __init__(self, parent, teacher_id, on_success):
         super().__init__(parent)
@@ -1851,11 +1656,9 @@ class AddAchievementDialog(ctk.CTkToplevel):
         self.configure(fg_color="#FFFFFF")
         self.transient(parent)
 
-        # --- Внешний контейнер ---
         outer = ctk.CTkFrame(self, fg_color="#FFFFFF")
         outer.pack(fill="both", expand=True)
 
-        # --- Заголовок (фиксированный, вне прокрутки) ---
         header = ctk.CTkFrame(outer, fg_color="#FFFFFF")
         header.pack(fill="x", padx=32, pady=(24, 8))
 
@@ -1864,7 +1667,6 @@ class AddAchievementDialog(ctk.CTkToplevel):
                      text_color="#1E3A8A",
                      anchor="w").pack(fill="x")
 
-        # --- ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ С ФОРМОЙ ---
         scroll = ctk.CTkScrollableFrame(
             outer,
             fg_color="#FFFFFF",
@@ -1874,11 +1676,9 @@ class AddAchievementDialog(ctk.CTkToplevel):
         )
         scroll.pack(fill="both", expand=True, padx=(24, 12), pady=(0, 8))
 
-        # Карточка внутри scroll
         card = ctk.CTkFrame(scroll, fg_color="#FFFFFF")
         card.pack(fill="both", expand=True, padx=8)
 
-        # --- Студент ---
         ctk.CTkLabel(card, text="Студент",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -1905,11 +1705,9 @@ class AddAchievementDialog(ctk.CTkToplevel):
             font=("Inter", 13), height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # --- Название ---
         self.title_entry = self._add_field(card, "Название",
                                             "Олимпиада по программированию")
 
-        # --- Тип ---
         ctk.CTkLabel(card, text="Тип",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -1924,7 +1722,6 @@ class AddAchievementDialog(ctk.CTkToplevel):
             font=("Inter", 13), height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # --- Уровень ---
         ctk.CTkLabel(card, text="Уровень",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -1940,7 +1737,6 @@ class AddAchievementDialog(ctk.CTkToplevel):
             font=("Inter", 13), height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # --- Место ---
         ctk.CTkLabel(card, text="Место",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -1955,19 +1751,12 @@ class AddAchievementDialog(ctk.CTkToplevel):
             font=("Inter", 13), height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # --- Дата ---
         self.date_entry = self._add_field(card, "Дата (ГГГГ-ММ-ДД)", "2026-10-25")
-
-        # --- Результат ---
         self.result_entry = self._add_field(card, "Результат", "1 место")
-
-        # --- Баллы ---
         self.points_entry = self._add_field(card, "Баллы", "10")
 
-        # --- Отступ снизу, чтобы не прилипало ---
         ctk.CTkFrame(card, height=10, fg_color="transparent").pack(fill="x")
 
-        # --- Кнопки (фиксированные, вне прокрутки) ---
         buttons = ctk.CTkFrame(outer, fg_color="#FFFFFF")
         buttons.pack(fill="x", padx=32, pady=(8, 24))
 
@@ -1989,7 +1778,6 @@ class AddAchievementDialog(ctk.CTkToplevel):
         ).pack(side="left", expand=True, fill="x", padx=(6, 0))
 
     def _add_field(self, parent, label, placeholder):
-        """Поле с подписью."""
         ctk.CTkLabel(parent, text=label,
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -2006,7 +1794,6 @@ class AddAchievementDialog(ctk.CTkToplevel):
         return entry
 
     def _on_save(self):
-        """Создать достижение."""
         from logic.teacher import create_achievement
 
         student_str = self.student_var.get()

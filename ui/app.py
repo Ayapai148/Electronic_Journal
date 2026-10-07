@@ -1,16 +1,3 @@
-"""
-Единое окно приложения ЭЖКСР.
-
-Внутри переключаются фреймы:
-- LoginPage
-- RegisterPage
-- TeacherApp (панель преподавателя)
-- StudentApp (панель студента)
-- AdminApp (панель администратора)
-
-Никаких destroy() + mainloop() — только переключение фреймов.
-"""
-
 import customtkinter as ctk
 from ui.theme import CONTENT_BG
 
@@ -21,7 +8,7 @@ class MainApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # --- Настройки окна ---
+        #Настройки окна 
         self.title("ЭЖКСР - Электронный журнал")
         self.geometry("1440x1024")
         self.configure(fg_color=CONTENT_BG)
@@ -32,9 +19,6 @@ class MainApp(ctk.CTk):
         # Показать вход
         self.show_login()
 
-    # ============================================================
-    # ПЕРЕКЛЮЧЕНИЕ ФРЕЙМОВ
-    # ============================================================
 
     def _switch_frame(self, FrameClass, *args, **kwargs):
         """
@@ -52,15 +36,11 @@ class MainApp(ctk.CTk):
         self.current_frame = FrameClass(self, *args, **kwargs)
         self.current_frame.pack(fill="both", expand=True)
 
-    # ============================================================
-    # ВХОД
-    # ============================================================
-
     def show_login(self):
-        """Показать страницу входа."""
         from ui.pages.login import LoginPage
-        self._switch_frame(LoginPage, on_success=self.on_login_success,
-                           on_register=self.show_register)
+        self._switch_frame(LoginPage,
+                        on_success=self.on_login_success,
+                        on_register=self.show_register)
 
     def show_register(self):
         """Показать страницу регистрации."""
@@ -84,9 +64,6 @@ class MainApp(ctk.CTk):
         elif role == "student":
             self.show_student(user)
 
-    # ============================================================
-    # ПАНЕЛИ РОЛЕЙ
-    # ============================================================
 
     def show_teacher(self, user):
         """Показать панель преподавателя."""

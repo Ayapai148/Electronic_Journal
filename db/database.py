@@ -1,7 +1,3 @@
-"""
-Модуль подключения к БД SQLite (без SQLAlchemy).
-"""
-
 import sqlite3
 from pathlib import Path
 
@@ -9,7 +5,6 @@ DB_PATH = Path(__file__).parent.parent / "ejksr.db"
 
 
 def get_connection():
-    """Соединение с БД."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -17,22 +12,20 @@ def get_connection():
 
 
 def init_db():
-    """Создать все таблицы, если их нет."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    # --- users ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             login TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             role TEXT NOT NULL,
+            email TEXT,
             create_date TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
-    # --- students ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +40,6 @@ def init_db():
         )
     """)
 
-    # --- teachers ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS teachers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +53,6 @@ def init_db():
         )
     """)
 
-    # --- clubs ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS clubs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +66,6 @@ def init_db():
         )
     """)
 
-    # --- lessons ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS lessons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +78,6 @@ def init_db():
         )
     """)
 
-    # --- attendance (с grade и comment) ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS attendance (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,7 +92,6 @@ def init_db():
         )
     """)
 
-    # --- achievement ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS achievement (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,7 +108,6 @@ def init_db():
         )
     """)
 
-    # --- portfolio_student ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS portfolio_student (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,7 +119,6 @@ def init_db():
         )
     """)
 
-    # --- enrollments ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS enrollments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,16 +130,43 @@ def init_db():
             FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE
         )
     """)
+
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS audit_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        user_login TEXT,
-        action TEXT NOT NULL,
-        details TEXT,
-        create_date TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-    )
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            user_login TEXT,
+            action TEXT NOT NULL,
+            details TEXT,
+            create_date TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS password_reset (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            email TEXT NOT NULL,
+            code TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            used INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_students_surname
+        ON students(surname)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_students_groups
+        ON students(groups)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_lessons_date
+        ON lessons(date)
     """)
 
     conn.commit()
@@ -162,4 +175,4 @@ def init_db():
 
 if __name__ == "__main__":
     init_db()
-    print("БД создана успешно")
+    print("БД создана успешно!")

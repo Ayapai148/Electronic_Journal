@@ -3,7 +3,6 @@ from ui.app import MainApp
 
 
 def main():
-    """Запуск приложения."""
     init_db()
     app = MainApp()
     app.mainloop()

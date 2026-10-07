@@ -1,7 +1,3 @@
-"""
-Панель студента со всеми страницами.
-"""
-
 import customtkinter as ctk
 from ui.theme import (
     HEADER_BG, SIDEBAR_BG, CONTENT_BG, CARD_BG,
@@ -11,7 +7,6 @@ from ui.theme import (
 
 
 class StudentApp(ctk.CTkFrame):
-    """Фрейм студента со всеми страницами."""
 
     def __init__(self, parent, user, on_logout):
         super().__init__(parent, fg_color=CONTENT_BG)
@@ -19,16 +14,13 @@ class StudentApp(ctk.CTkFrame):
         self.user = user
         self.on_logout = on_logout
 
-        # Профиль
         from logic.student import get_student_by_user_id
         self.student = get_student_by_user_id(user["id"])
 
         self.current_page = "dashboard"
 
-        # Шапка
         self._build_header()
 
-        # Layout
         layout = ctk.CTkFrame(self, fg_color="transparent")
         layout.pack(fill="both", expand=True)
 
@@ -40,10 +32,6 @@ class StudentApp(ctk.CTkFrame):
 
         self.show_page("dashboard")
 
-    # ============================================================
-    # ШАПКА
-    # ============================================================
-
     def _build_header(self):
         header = ctk.CTkFrame(self, height=60,
                               fg_color=HEADER_BG, corner_radius=0)
@@ -51,7 +39,7 @@ class StudentApp(ctk.CTkFrame):
         header.pack_propagate(False)
 
         ctk.CTkLabel(header,
-                     text="📓  ЭЖКСР — Электронный журнал",
+                     text="ЭЖКСР - Электронный журнал",
                      font=("Inter", 16, "bold"),
                      text_color="#FFFFFF").pack(side="left", padx=24)
 
@@ -63,13 +51,9 @@ class StudentApp(ctk.CTkFrame):
                       command=self.on_logout).pack(side="right", padx=24)
 
         ctk.CTkLabel(header,
-                     text=f"{self.user.get('login', 'Студент')}  •  Студент",
+                     text=f"{self.user.get('login', 'Студент')}  Студент",
                      font=("Inter", 13),
                      text_color="#FFFFFF").pack(side="right", padx=16)
-
-    # ============================================================
-    # САЙДБАР
-    # ============================================================
 
     def _build_sidebar(self, parent):
         sidebar = ctk.CTkFrame(parent, width=240,
@@ -108,10 +92,6 @@ class StudentApp(ctk.CTkFrame):
                 font=("Inter", 14, "bold" if is_active else "normal")
             )
 
-    # ============================================================
-    # ПЕРЕКЛЮЧЕНИЕ
-    # ============================================================
-
     def show_page(self, page):
         self.current_page = page
         self._update_menu()
@@ -129,10 +109,6 @@ class StudentApp(ctk.CTkFrame):
             self._show_people()
         elif page == "portfolio":
             self._show_portfolio()
-
-    # ============================================================
-    # ГЛАВНАЯ
-    # ============================================================
 
     def _show_dashboard(self):
         from logic.student import (
@@ -154,10 +130,10 @@ class StudentApp(ctk.CTkFrame):
         fio = f"{self.student['surname']} {self.student['name']}"
         if self.student.get("patronymic"):
             fio += f" {self.student['patronymic']}"
-        group = self.student.get("groups") or "—"
+        group = self.student.get("groups") or "-"
 
         ctk.CTkLabel(self.content,
-                     text=f"{fio} — группа {group}",
+                     text=f"{fio} - группа {group}",
                      font=("Inter", 13), text_color=TEXT_GRAY,
                      anchor="w").pack(fill="x", pady=(4, 24))
 
@@ -191,7 +167,6 @@ class StudentApp(ctk.CTkFrame):
                          text_color=TEXT_BLUE,
                          anchor="w").pack(anchor="w", padx=20, pady=(0, 20))
 
-        # Занятия
         lessons = get_upcoming_lessons(sid)
 
         panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
@@ -228,11 +203,11 @@ class StudentApp(ctk.CTkFrame):
             row.pack(fill="x")
 
             for value, w in [
-                (lesson.get("date", "—"), 140),
-                (lesson.get("topic", "—"), 300),
-                (lesson.get("club_name", "—"), 200),
-                (lesson.get("teacher_fio", "—"), 200),
-                (lesson.get("room", "—"), 120),
+                (lesson.get("date", "-"), 140),
+                (lesson.get("topic", "-"), 300),
+                (lesson.get("club_name", "-"), 200),
+                (lesson.get("teacher_fio", "-"), 200),
+                (lesson.get("room", "-"), 120),
             ]:
                 ctk.CTkLabel(row, text=value, width=w,
                              font=("Inter", 13),
@@ -243,18 +218,12 @@ class StudentApp(ctk.CTkFrame):
                 ctk.CTkFrame(panel, height=1,
                              fg_color="#F1F5F9").pack(fill="x")
 
-    # ============================================================
-    # РАСПИСАНИЕ
-    # ============================================================
-
     def _show_schedule(self):
-        from logic.student import get_schedule
-
         ctk.CTkLabel(self.content, text="Расписание",
                      font=("Inter", 22, "bold"),
                      text_color=TEXT_DARK, anchor="w").pack(fill="x")
 
-        ctk.CTkLabel(self.content, text="Расписание занятий на неделю",
+        ctk.CTkLabel(self.content, text="Расписание занятий",
                      font=("Inter", 13), text_color=TEXT_GRAY,
                      anchor="w").pack(fill="x", pady=(4, 24))
 
@@ -264,17 +233,86 @@ class StudentApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=60)
             return
 
+        panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
+                             corner_radius=12, border_width=1,
+                             border_color=BORDER)
+        panel.pack(fill="both", expand=True)
+
+        top = ctk.CTkFrame(panel, fg_color="transparent")
+        top.pack(fill="x", padx=22, pady=16)
+
+        ctk.CTkLabel(top, text="Режим:",
+                     font=("Inter", 13, "bold"),
+                     text_color=TEXT_DARK).pack(side="left", padx=(0, 8))
+
+        self._schedule_view_var = ctk.StringVar(value="По дням недели")
+        ctk.CTkOptionMenu(
+            top,
+            values=["По дням недели", "По датам"],
+            variable=self._schedule_view_var,
+            fg_color="#F8FAFC",
+            button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13),
+            height=36, corner_radius=8,
+            width=180,
+            command=lambda _: self._reload_schedule_table()
+        ).pack(side="left", padx=(0, 24))
+
+        ctk.CTkLabel(top, text="Период:",
+                     font=("Inter", 13, "bold"),
+                     text_color=TEXT_DARK).pack(side="left", padx=(0, 8))
+
+        self._schedule_period_var = ctk.StringVar(value="Эта неделя")
+        ctk.CTkOptionMenu(
+            top,
+            values=["Сегодня", "Эта неделя", "Этот месяц", "Все занятия"],
+            variable=self._schedule_period_var,
+            fg_color="#F8FAFC",
+            button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13),
+            height=36, corner_radius=8,
+            width=180,
+            command=lambda _: self._reload_schedule_table()
+        ).pack(side="left")
+
+        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
+
+        self._schedule_table_frame = ctk.CTkFrame(panel,
+                                                   fg_color="transparent")
+        self._schedule_table_frame.pack(fill="both", expand=True)
+
+        self._reload_schedule_table()
+
+    def _reload_schedule_table(self):
+        for w in self._schedule_table_frame.winfo_children():
+            w.destroy()
+
+        view = self._schedule_view_var.get()
+        period = self._schedule_period_var.get()
+
+        if view == "По дням недели":
+            self._render_schedule_weekly()
+        else:
+            self._render_schedule_by_dates(period)
+
+    def _render_schedule_weekly(self):
+        from logic.student import get_schedule
+
         schedule = get_schedule(self.student["id"])
         total = sum(len(ls) for ls in schedule.values())
 
         if total == 0:
-            ctk.CTkLabel(self.content, text="Расписание не составлено",
+            ctk.CTkLabel(self._schedule_table_frame,
+                         text="Расписание не составлено",
                          font=("Inter", 16),
                          text_color="#94A3B8").pack(pady=60)
             return
 
-        days_frame = ctk.CTkFrame(self.content, fg_color="transparent")
-        days_frame.pack(fill="both", expand=True)
+        days_frame = ctk.CTkFrame(self._schedule_table_frame,
+                                   fg_color="transparent")
+        days_frame.pack(fill="both", expand=True, padx=8, pady=8)
 
         for day_name, lessons in schedule.items():
             day_card = ctk.CTkFrame(days_frame, fg_color="#F8FAFC",
@@ -319,9 +357,66 @@ class StudentApp(ctk.CTkFrame):
                              text_color="#94A3B8",
                              anchor="w").pack(fill="x", padx=10, pady=(0, 8))
 
-    # ============================================================
-    # ОЦЕНКИ
-    # ============================================================
+    def _render_schedule_by_dates(self, period):
+        from logic.student import get_student_lessons_filtered
+
+        period_map = {
+            "Сегодня": "today",
+            "Эта неделя": "week",
+            "Этот месяц": "month",
+            "Все занятия": "all",
+        }
+        period_key = period_map.get(period, "week")
+
+        lessons = get_student_lessons_filtered(self.student["id"], period_key)
+
+        if not lessons:
+            ctk.CTkLabel(self._schedule_table_frame,
+                         text="Нет занятий за выбранный период",
+                         font=("Inter", 14),
+                         text_color="#94A3B8").pack(pady=60)
+            return
+
+        head = ctk.CTkFrame(self._schedule_table_frame,
+                            fg_color="#F8FAFC", corner_radius=0)
+        head.pack(fill="x")
+        for text, w in [("Дата", 140), ("Тема", 300),
+                        ("Кружок", 200), ("Преподаватель", 200),
+                        ("Аудитория", 120), ("Часы", 100)]:
+            ctk.CTkLabel(head, text=text, width=w,
+                         font=("Inter", 12, "bold"),
+                         text_color=MENU_TEXT,
+                         anchor="w").pack(side="left", padx=14, pady=11)
+
+        scroll = ctk.CTkScrollableFrame(
+            self._schedule_table_frame,
+            fg_color="transparent",
+            scrollbar_button_color="#CBD5E1",
+            scrollbar_button_hover_color="#94A3B8",
+            corner_radius=0
+        )
+        scroll.pack(fill="both", expand=True)
+
+        for r_idx, lesson in enumerate(lessons):
+            row = ctk.CTkFrame(scroll, fg_color="transparent")
+            row.pack(fill="x")
+
+            for value, w in [
+                (lesson.get("date", "—"), 140),
+                (lesson.get("topic", "—"), 300),
+                (lesson.get("club_name", "—"), 200),
+                (lesson.get("teacher_fio", "—"), 200),
+                (lesson.get("room", "—"), 120),
+                (str(lesson.get("hours") or "—"), 100),
+            ]:
+                ctk.CTkLabel(row, text=value, width=w,
+                             font=("Inter", 13),
+                             text_color="#334155",
+                             anchor="w").pack(side="left", padx=14, pady=11)
+
+            if r_idx < len(lessons) - 1:
+                ctk.CTkFrame(scroll, height=1,
+                             fg_color="#F1F5F9").pack(fill="x")
 
     def _show_grades(self):
         from logic.student import get_grades
@@ -353,19 +448,33 @@ class StudentApp(ctk.CTkFrame):
             club = g.get("club_name", "Без кружка")
             grouped.setdefault(club, []).append(g)
 
+        scroll = ctk.CTkScrollableFrame(
+            self.content,
+            fg_color="transparent",
+            scrollbar_button_color="#CBD5E1",
+            scrollbar_button_hover_color="#94A3B8",
+            corner_radius=0
+        )
+        scroll.pack(fill="both", expand=True)
+
         for club_name, club_grades in grouped.items():
             teacher = club_grades[0].get("teacher_fio", "—") if club_grades else "—"
+            attendance = club_grades[0].get("attendance", 0) if club_grades else 0
 
-            panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
+            panel = ctk.CTkFrame(scroll, fg_color=CARD_BG,
                                  corner_radius=12, border_width=1,
                                  border_color=BORDER)
-            panel.pack(fill="x", pady=(0, 16))
+            panel.pack(fill="x", pady=(0, 16), padx=4)
 
             h = ctk.CTkFrame(panel, fg_color="transparent")
             h.pack(fill="x", padx=22, pady=16)
             ctk.CTkLabel(h, text=f"{club_name} — {teacher}",
                          font=("Inter", 15, "bold"),
                          text_color=TEXT_DARK).pack(side="left")
+
+            ctk.CTkLabel(h, text=f"Посещаемость: {attendance}%",
+                         font=("Inter", 13, "bold"),
+                         text_color="#2563EB").pack(side="right")
 
             ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
 
@@ -382,70 +491,81 @@ class StudentApp(ctk.CTkFrame):
                 row = ctk.CTkFrame(panel, fg_color="transparent")
                 row.pack(fill="x")
 
-                for value, w in [
-                    (g.get("date", "—"), 140),
-                    (g.get("topic", "—"), 400),
-                    (str(g.get("grade")) if g.get("grade") is not None else "—", 100),
-                    (g.get("comment") or "—", 300),
+                grade = g.get("grade")
+                status = g.get("status")
+
+                if grade is not None:
+                    grade_text = str(grade)
+                    grade_color = "#1E293B"
+                elif status == "НБ":
+                    grade_text = "НБ"
+                    grade_color = "#94A3B8"
+                else:
+                    grade_text = "—"
+                    grade_color = "#94A3B8"
+
+                for value, w, color in [
+                    (g.get("date", "—"), 140, "#334155"),
+                    (g.get("topic", "—"), 400, "#334155"),
+                    (grade_text, 100, grade_color),
+                    (g.get("comment") or "—", 300, "#94A3B8"),
                 ]:
                     ctk.CTkLabel(row, text=value, width=w,
-                                 font=("Inter", 13),
-                                 text_color="#334155",
+                                 font=("Inter", 13, "bold" if color == grade_color else "normal"),
+                                 text_color=color,
                                  anchor="w").pack(side="left", padx=14, pady=11)
 
                 if r_idx < len(club_grades) - 1:
                     ctk.CTkFrame(panel, height=1,
                                  fg_color="#F1F5F9").pack(fill="x")
 
-    # ============================================================
-    # ПРЕПОДАВАТЕЛИ И ГРУППА
-    # ============================================================
-
     def _show_people(self):
         from logic.student import get_teachers_list, get_groupmates
 
         ctk.CTkLabel(self.content, text="Преподаватели и группа",
-                     font=("Inter", 22, "bold"),
-                     text_color=TEXT_DARK, anchor="w").pack(fill="x")
+                    font=("Inter", 22, "bold"),
+                    text_color=TEXT_DARK, anchor="w").pack(fill="x")
 
         ctk.CTkLabel(self.content, text="Список преподавателей и одногруппников",
-                     font=("Inter", 13), text_color=TEXT_GRAY,
-                     anchor="w").pack(fill="x", pady=(4, 24))
+                    font=("Inter", 13), text_color=TEXT_GRAY,
+                    anchor="w").pack(fill="x", pady=(4, 24))
 
         if not self.student:
             return
 
-        # Преподаватели
         teachers = get_teachers_list()
 
         panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
-                             corner_radius=12, border_width=1,
-                             border_color=BORDER)
+                            corner_radius=12, border_width=1,
+                            border_color=BORDER)
         panel.pack(fill="x", pady=(0, 16))
 
         h = ctk.CTkFrame(panel, fg_color="transparent")
         h.pack(fill="x", padx=22, pady=16)
         ctk.CTkLabel(h, text="Преподаватели",
-                     font=("Inter", 15, "bold"),
-                     text_color=TEXT_DARK).pack(side="left")
+                    font=("Inter", 15, "bold"),
+                    text_color=TEXT_DARK).pack(side="left")
 
         ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
 
         if not teachers:
             ctk.CTkLabel(panel, text="Нет данных о преподавателях",
-                         font=("Inter", 14),
-                         text_color="#94A3B8").pack(pady=40)
+                        font=("Inter", 14),
+                        text_color="#94A3B8").pack(pady=40)
         else:
-            head_row = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
+            scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent")
+            scroll.pack(fill="both", expand=True)
+
+            head_row = ctk.CTkFrame(scroll, fg_color="#F8FAFC", corner_radius=0)
             head_row.pack(fill="x")
             for text, w in [("ФИО", 340), ("Должность", 240), ("Кружки", 300)]:
                 ctk.CTkLabel(head_row, text=text, width=w,
-                             font=("Inter", 12, "bold"),
-                             text_color=MENU_TEXT,
-                             anchor="w").pack(side="left", padx=14, pady=11)
+                            font=("Inter", 12, "bold"),
+                            text_color=MENU_TEXT,
+                            anchor="w").pack(side="left", padx=14, pady=11)
 
             for r_idx, t in enumerate(teachers):
-                row = ctk.CTkFrame(panel, fg_color="transparent")
+                row = ctk.CTkFrame(scroll, fg_color="transparent")
                 row.pack(fill="x")
                 for value, w in [
                     (t.get("fio", "—"), 340),
@@ -453,15 +573,14 @@ class StudentApp(ctk.CTkFrame):
                     (t.get("clubs") or "—", 300),
                 ]:
                     ctk.CTkLabel(row, text=value, width=w,
-                                 font=("Inter", 13),
-                                 text_color="#334155",
-                                 anchor="w").pack(side="left", padx=14, pady=11)
+                                font=("Inter", 13),
+                                text_color="#334155",
+                                anchor="w").pack(side="left", padx=14, pady=11)
 
                 if r_idx < len(teachers) - 1:
-                    ctk.CTkFrame(panel, height=1,
-                                 fg_color="#F1F5F9").pack(fill="x")
+                    ctk.CTkFrame(scroll, height=1,
+                                fg_color="#F1F5F9").pack(fill="x")
 
-        # Группа
         group = self.student.get("groups") or ""
         if not group:
             return
@@ -469,34 +588,37 @@ class StudentApp(ctk.CTkFrame):
         groupmates = get_groupmates(group)
 
         panel2 = ctk.CTkFrame(self.content, fg_color=CARD_BG,
-                              corner_radius=12, border_width=1,
-                              border_color=BORDER)
+                            corner_radius=12, border_width=1,
+                            border_color=BORDER)
         panel2.pack(fill="x", pady=(0, 16))
 
         h2 = ctk.CTkFrame(panel2, fg_color="transparent")
         h2.pack(fill="x", padx=22, pady=16)
         ctk.CTkLabel(h2, text=f"Группа {group}",
-                     font=("Inter", 15, "bold"),
-                     text_color=TEXT_DARK).pack(side="left")
+                    font=("Inter", 15, "bold"),
+                    text_color=TEXT_DARK).pack(side="left")
 
         ctk.CTkFrame(panel2, height=1, fg_color=BORDER).pack(fill="x")
 
         if not groupmates:
             ctk.CTkLabel(panel2, text="В группе нет студентов",
-                         font=("Inter", 14),
-                         text_color="#94A3B8").pack(pady=40)
+                        font=("Inter", 14),
+                        text_color="#94A3B8").pack(pady=40)
             return
 
-        hr = ctk.CTkFrame(panel2, fg_color="#F8FAFC", corner_radius=0)
+        scroll2 = ctk.CTkScrollableFrame(panel2, fg_color="transparent")
+        scroll2.pack(fill="both", expand=True)
+
+        hr = ctk.CTkFrame(scroll2, fg_color="#F8FAFC", corner_radius=0)
         hr.pack(fill="x")
         for text, w in [("ФИО", 340), ("Номер студенческого", 240), ("Группа", 200)]:
             ctk.CTkLabel(hr, text=text, width=w,
-                         font=("Inter", 12, "bold"),
-                         text_color=MENU_TEXT,
-                         anchor="w").pack(side="left", padx=14, pady=11)
+                        font=("Inter", 12, "bold"),
+                        text_color=MENU_TEXT,
+                        anchor="w").pack(side="left", padx=14, pady=11)
 
         for r_idx, s in enumerate(groupmates):
-            row = ctk.CTkFrame(panel2, fg_color="transparent")
+            row = ctk.CTkFrame(scroll2, fg_color="transparent")
             row.pack(fill="x")
             for value, w in [
                 (s.get("fio", "—"), 340),
@@ -504,17 +626,13 @@ class StudentApp(ctk.CTkFrame):
                 (s.get("groups") or "—", 200),
             ]:
                 ctk.CTkLabel(row, text=value, width=w,
-                             font=("Inter", 13),
-                             text_color="#334155",
-                             anchor="w").pack(side="left", padx=14, pady=11)
+                            font=("Inter", 13),
+                            text_color="#334155",
+                            anchor="w").pack(side="left", padx=14, pady=11)
 
             if r_idx < len(groupmates) - 1:
-                ctk.CTkFrame(panel2, height=1,
-                             fg_color="#F1F5F9").pack(fill="x")
-
-    # ============================================================
-    # ПОРТФОЛИО
-    # ============================================================
+                ctk.CTkFrame(scroll2, height=1,
+                            fg_color="#F1F5F9").pack(fill="x")
 
     def _show_portfolio(self):
         from logic.student import get_achievements

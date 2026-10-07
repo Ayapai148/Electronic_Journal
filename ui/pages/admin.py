@@ -1,12 +1,3 @@
-"""
-Панель администратора (Рисунки 16, 17, 19 из отчёта).
-
-Единый фрейм с 3 страницами:
-- Панель управления
-- Пользователи
-- Отчёты
-"""
-
 import customtkinter as ctk
 from tkinter import messagebox
 from ui.theme import (
@@ -15,8 +6,6 @@ from ui.theme import (
     MENU_TEXT, BORDER
 )
 
-
-# Ширины колонок
 COL_ID = 80
 COL_FIO = 340
 COL_LOGIN = 180
@@ -32,7 +21,6 @@ COL_ATT = 160
 
 
 class AdminApp(ctk.CTkFrame):
-    """Фрейм администратора со всеми страницами."""
 
     def __init__(self, parent, user, on_logout):
         super().__init__(parent, fg_color=CONTENT_BG)
@@ -42,10 +30,8 @@ class AdminApp(ctk.CTkFrame):
 
         self.current_page = "dashboard"
 
-        # Шапка
         self._build_header()
 
-        # Layout
         layout = ctk.CTkFrame(self, fg_color="transparent")
         layout.pack(fill="both", expand=True)
 
@@ -56,10 +42,6 @@ class AdminApp(ctk.CTkFrame):
                           padx=32, pady=28)
 
         self.show_page("dashboard")
-
-    # ============================================================
-    # ШАПКА
-    # ============================================================
 
     def _build_header(self):
         header = ctk.CTkFrame(self, height=60,
@@ -80,13 +62,9 @@ class AdminApp(ctk.CTkFrame):
                       command=self.on_logout).pack(side="right", padx=24)
 
         ctk.CTkLabel(header,
-                     text=f"{self.user.get('login', 'Администратор')}  •  Администратор",
+                     text=f"{self.user.get('login', 'Администратор')}  Администратор",
                      font=("Inter", 13),
                      text_color="#FFFFFF").pack(side="right", padx=16)
-
-    # ============================================================
-    # САЙДБАР
-    # ============================================================
 
     def _build_sidebar(self, parent):
         sidebar = ctk.CTkFrame(parent, width=240,
@@ -100,6 +78,7 @@ class AdminApp(ctk.CTkFrame):
             ("Панель управления", "dashboard"),
             ("Пользователи", "users"),
             ("Кружки", "clubs"),
+            ("Настройки", "settings"),
             ("Отчёты", "reports"),
         ]
 
@@ -124,10 +103,6 @@ class AdminApp(ctk.CTkFrame):
                 font=("Inter", 14, "bold" if is_active else "normal")
             )
 
-    # ============================================================
-    # ПЕРЕКЛЮЧЕНИЕ
-    # ============================================================
-
     def show_page(self, page):
         self.current_page = page
         self._update_menu()
@@ -139,14 +114,12 @@ class AdminApp(ctk.CTkFrame):
             self._show_dashboard()
         elif page == "users":
             self._show_users()
-        elif page =="clubs":
+        elif page == "clubs":
             self._show_clubs()
+        elif page == 'settings':
+            self._show_settings()
         elif page == "reports":
             self._show_reports()
-
-    # ============================================================
-    # ПАНЕЛЬ УПРАВЛЕНИЯ
-    # ============================================================
 
     def _show_dashboard(self):
         from logic.admin import (
@@ -164,7 +137,6 @@ class AdminApp(ctk.CTkFrame):
                      font=("Inter", 13), text_color=TEXT_GRAY,
                      anchor="w").pack(fill="x", pady=(4, 24))
 
-        # Карточки
         users = get_users_count()
         students = get_students_count()
         teachers = get_teachers_count()
@@ -194,7 +166,6 @@ class AdminApp(ctk.CTkFrame):
                          text_color=TEXT_BLUE,
                          anchor="w").pack(anchor="w", padx=20, pady=(0, 20))
 
-        # Последние действия
         panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
                              corner_radius=12, border_width=1,
                              border_color=BORDER)
@@ -216,7 +187,6 @@ class AdminApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=40)
             return
 
-        # Заголовки
         head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
         head.pack(fill="x")
         for text, w in [("Дата", 200), ("Пользователь", 240), ("Действие", 500)]:
@@ -242,10 +212,6 @@ class AdminApp(ctk.CTkFrame):
                 ctk.CTkFrame(panel, height=1,
                              fg_color="#F1F5F9").pack(fill="x")
 
-    # ============================================================
-    # ПОЛЬЗОВАТЕЛИ
-    # ============================================================
-
     def _show_users(self):
         from logic.admin import get_all_users
 
@@ -260,13 +226,11 @@ class AdminApp(ctk.CTkFrame):
 
         users = get_all_users()
 
-        # Панель
         panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
                              corner_radius=12, border_width=1,
                              border_color=BORDER)
         panel.pack(fill="both", expand=True)
 
-        # Заголовок панели
         h = ctk.CTkFrame(panel, fg_color="transparent")
         h.pack(fill="x", padx=22, pady=16)
         ctk.CTkLabel(h, text="Список пользователей",
@@ -287,7 +251,6 @@ class AdminApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=40)
             return
 
-        # === ЗАГОЛОВКИ ТАБЛИЦЫ (фиксированные, не скроллятся) ===
         head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
         head.pack(fill="x")
         for text, w in [
@@ -300,7 +263,6 @@ class AdminApp(ctk.CTkFrame):
                          text_color=MENU_TEXT,
                          anchor="w").pack(side="left", padx=14, pady=11)
 
-        # === ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ С ДАННЫМИ ===
         scroll = ctk.CTkScrollableFrame(
             panel,
             fg_color="transparent",
@@ -310,7 +272,6 @@ class AdminApp(ctk.CTkFrame):
         )
         scroll.pack(fill="both", expand=True)
 
-        # Данные
         for r_idx, u in enumerate(users):
             row = ctk.CTkFrame(scroll, fg_color="transparent")
             row.pack(fill="x")
@@ -327,7 +288,6 @@ class AdminApp(ctk.CTkFrame):
                              text_color="#334155",
                              anchor="w").pack(side="left", padx=14, pady=11)
 
-            # Кнопки действий
             actions = ctk.CTkFrame(row, width=COL_ACTION, fg_color="transparent")
             actions.pack(side="left", padx=14, pady=11)
 
@@ -352,10 +312,8 @@ class AdminApp(ctk.CTkFrame):
         }.get(role, role or "—")
 
     def _on_delete_user(self, user_id, login):
-        """Удалить пользователя с подтверждением."""
         from logic.admin import delete_user
 
-        # Нельзя удалить самого себя
         if self.user.get("id") == user_id:
             messagebox.showwarning("Ошибка", "Нельзя удалить себя")
             return
@@ -374,95 +332,18 @@ class AdminApp(ctk.CTkFrame):
         else:
             messagebox.showerror("Ошибка", "Не удалось удалить")
 
-    # ============================================================
-    # ОТЧЁТЫ
-    # ============================================================
-
-    def _show_reports(self):
-        from logic.admin import get_clubs_report
-
-        ctk.CTkLabel(self.content, text="Отчёты",
-                     font=("Inter", 22, "bold"),
-                     text_color=TEXT_DARK, anchor="w").pack(fill="x")
-
-        ctk.CTkLabel(self.content,
-                     text="Сводка по кружкам и секциям",
-                     font=("Inter", 13), text_color=TEXT_GRAY,
-                     anchor="w").pack(fill="x", pady=(4, 24))
-
-        report = get_clubs_report()
-
-        panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
-                             corner_radius=12, border_width=1,
-                             border_color=BORDER)
-        panel.pack(fill="both", expand=True)
-
-        h = ctk.CTkFrame(panel, fg_color="transparent")
-        h.pack(fill="x", padx=22, pady=16)
-        ctk.CTkLabel(h, text="Сводка по кружкам и секциям",
-                     font=("Inter", 15, "bold"),
-                     text_color=TEXT_DARK).pack(side="left")
-
-        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
-
-        if not report:
-            ctk.CTkLabel(panel, text="Нет данных",
-                         font=("Inter", 14),
-                         text_color="#94A3B8").pack(pady=40)
-            return
-
-        # Заголовки
-        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
-        head.pack(fill="x")
-        for text, w in [
-            ("Кружок/секция", COL_CLUB),
-            ("Преподаватель", COL_TEACHER),
-            ("Студентов", COL_STUDENTS),
-            ("Средний балл", COL_AVG),
-            ("Посещаемость", COL_ATT),
-        ]:
-            ctk.CTkLabel(head, text=text, width=w,
-                         font=("Inter", 12, "bold"),
-                         text_color=MENU_TEXT,
-                         anchor="w").pack(side="left", padx=14, pady=11)
-
-        # Данные
-        for r_idx, row_data in enumerate(report):
-            row = ctk.CTkFrame(panel, fg_color="transparent")
-            row.pack(fill="x")
-
-            avg = row_data.get("avg_grade") or 0
-            att = row_data.get("attendance") or 0
-
-            for value, w in [
-                (row_data.get("club", "-"), COL_CLUB),
-                (row_data.get("teacher", "-"), COL_TEACHER),
-                (str(row_data.get("students", 0)), COL_STUDENTS),
-                (f"{avg:.1f}" if avg else "-", COL_AVG),
-                (f"{att}%" if att else "-", COL_ATT),
-            ]:
-                ctk.CTkLabel(row, text=value, width=w,
-                             font=("Inter", 13),
-                             text_color="#334155",
-                             anchor="w").pack(side="left", padx=14, pady=11)
-
-            if r_idx < len(report) - 1:
-                ctk.CTkFrame(panel, height=1,
-                             fg_color="#F1F5F9").pack(fill="x")
     def _on_add_user(self):
-            """Открыть модальное окно добавления пользователя."""
-            dialog = AddUserDialog(
-                self,
-                on_success=self._reload_users,
-                admin=self.user
-            )
-            dialog.grab_set()   # модальное окно
-    
+        dialog = AddUserDialog(
+            self,
+            on_success=self._reload_users,
+            admin=self.user
+        )
+        dialog.grab_set()
+
     def _reload_users(self):
-        """Перезагрузить страницу пользователей."""
         self.show_page("users")
+
     def _show_clubs(self):
-        """Страница «Кружки»."""
         from logic.admin import get_all_clubs
 
         ctk.CTkLabel(self.content, text="Кружки и секции",
@@ -501,6 +382,10 @@ class AdminApp(ctk.CTkFrame):
                          text_color="#94A3B8").pack(pady=40)
             return
 
+        scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent",
+                                        scrollbar_button_color="#CBD5E1")
+        scroll.pack(fill="both", expand=True)
+
         columns = [
             ("Название", 240),
             ("Тип", 140),
@@ -510,8 +395,7 @@ class AdminApp(ctk.CTkFrame):
             ("Действия", 200),
         ]
 
-        # Заголовки — через grid (как данные)
-        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
+        head = ctk.CTkFrame(scroll, fg_color="#F8FAFC", corner_radius=0)
         head.pack(fill="x")
 
         for col_idx, (title, width) in enumerate(columns):
@@ -524,30 +408,13 @@ class AdminApp(ctk.CTkFrame):
                 sticky="w", padx=14, pady=11
             )
 
-                # Прокручиваемая область
-        scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent",
-                                        scrollbar_button_color="#CBD5E1")
-        scroll.pack(fill="both", expand=True)
-
-        # Список колонок с фиксированной шириной
-        columns = [
-            ("Название", 240),
-            ("Тип", 140),
-            ("Преподаватель", 220),
-            ("Расписание", 260),
-            ("Аудитория", 120),
-            ("Действия", 200),
-        ]
-
         for r_idx, c in enumerate(clubs):
             row = ctk.CTkFrame(scroll, fg_color="transparent")
             row.pack(fill="x")
 
-            # Используем grid с фиксированными колонками
             for col_idx, (_, width) in enumerate(columns):
                 row.grid_columnconfigure(col_idx, weight=0, minsize=width)
 
-            # Данные
             values = [
                 c.get("name", "-"),
                 c.get("type") or "-",
@@ -565,7 +432,6 @@ class AdminApp(ctk.CTkFrame):
                     sticky="w", padx=14, pady=11
                 )
 
-            # Действия — отдельный фрейм в 6-й колонке
             actions = ctk.CTkFrame(row, fg_color="transparent")
             actions.grid(row=0, column=5, sticky="w", padx=14, pady=11)
 
@@ -591,54 +457,342 @@ class AdminApp(ctk.CTkFrame):
                              fg_color="#F1F5F9").pack(fill="x")
 
     def _on_add_club(self):
-        """Открыть модалку добавления кружка."""
         dialog = AddClubDialog(
-            self, 
-            on_success=self._reload_clubs, 
+            self,
+            on_success=self._reload_clubs,
             club=None,
             admin=self.user
         )
         dialog.grab_set()
 
     def _on_edit_club(self, club):
-        """Открыть модалку редактирования кружка."""
         dialog = AddClubDialog(
-            self, 
-            on_success=self._reload_clubs, 
+            self,
+            on_success=self._reload_clubs,
             club=club,
             admin=self.user
         )
         dialog.grab_set()
 
-    def _on_delete_club(self, club_id, club_name):
-        """Удалить кружок с подтверждением."""
-        from logic.admin import delete_club
+    def _show_reports(self):
+        from logic.admin import (
+            get_clubs_report, get_report_periods,
+            get_all_clubs_for_filter,
+        )
+
+        ctk.CTkLabel(self.content, text="Отчёты",
+                     font=("Inter", 22, "bold"),
+                     text_color=TEXT_DARK, anchor="w").pack(fill="x")
+
+        ctk.CTkLabel(self.content,
+                     text="Сводка по кружкам и секциям",
+                     font=("Inter", 13), text_color=TEXT_GRAY,
+                     anchor="w").pack(fill="x", pady=(4, 24))
+
+        # --- Панель фильтров ---
+        filters = ctk.CTkFrame(self.content, fg_color=CARD_BG,
+                               corner_radius=12, border_width=1,
+                               border_color=BORDER)
+        filters.pack(fill="x", pady=(0, 16))
+
+        finner = ctk.CTkFrame(filters, fg_color="transparent")
+        finner.pack(fill="x", padx=22, pady=16)
+
+        # Период
+        ctk.CTkLabel(finner, text="Период:",
+                     font=("Inter", 13, "bold"),
+                     text_color=TEXT_DARK).pack(side="left", padx=(0, 8))
+
+        periods = get_report_periods()
+        period_labels = ["Всё время"] + [p["label"] for p in periods]
+        self._report_period_map = {"Всё время": None}
+        for p in periods:
+            self._report_period_map[p["label"]] = p["value"]
+
+        self._report_period_var = ctk.StringVar(value="Всё время")
+        ctk.CTkOptionMenu(
+            finner,
+            values=period_labels,
+            variable=self._report_period_var,
+            fg_color="#F8FAFC",
+            button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13),
+            height=36, corner_radius=8,
+            width=200
+        ).pack(side="left", padx=(0, 24))
+
+        # Кружок
+        ctk.CTkLabel(finner, text="Кружок:",
+                     font=("Inter", 13, "bold"),
+                     text_color=TEXT_DARK).pack(side="left", padx=(0, 8))
+
+        clubs = get_all_clubs_for_filter()
+        club_labels = ["Все"] + [c["name"] for c in clubs]
+        self._report_club_map = {"Все": None}
+        for c in clubs:
+            self._report_club_map[c["name"]] = c["id"]
+
+        self._report_club_var = ctk.StringVar(value="Все")
+        ctk.CTkOptionMenu(
+            finner,
+            values=club_labels,
+            variable=self._report_club_var,
+            fg_color="#F8FAFC",
+            button_color="#CBD5E1",
+            text_color="#1E293B",
+            font=("Inter", 13),
+            height=36, corner_radius=8,
+            width=250
+        ).pack(side="left", padx=(0, 24))
+
+        # Кнопка
+        ctk.CTkButton(
+            finner, text="Сформировать",
+            fg_color="#2563EB", hover_color="#1D4ED8",
+            height=36, corner_radius=8,
+            font=("Inter", 13, "bold"),
+            command=self._reload_report_table
+        ).pack(side="right")
+
+        # --- Контейнер для таблицы ---
+        self._report_table_frame = ctk.CTkFrame(self.content,
+                                                 fg_color="transparent")
+        self._report_table_frame.pack(fill="both", expand=True)
+
+        self._reload_report_table()
+
+    def _reload_report_table(self):
+        from logic.admin import get_clubs_report
+
+        for w in self._report_table_frame.winfo_children():
+            w.destroy()
+
+        period_label = self._report_period_var.get()
+        club_label = self._report_club_var.get()
+
+        period = self._report_period_map.get(period_label)
+        club_id = self._report_club_map.get(club_label)
+
+        report = get_clubs_report(period=period, club_id=club_id)
+
+        panel = ctk.CTkFrame(self._report_table_frame, fg_color=CARD_BG,
+                             corner_radius=12, border_width=1,
+                             border_color=BORDER)
+        panel.pack(fill="both", expand=True)
+
+        h = ctk.CTkFrame(panel, fg_color="transparent")
+        h.pack(fill="x", padx=22, pady=16)
+        ctk.CTkLabel(h, text="Сводка по кружкам и секциям",
+                     font=("Inter", 15, "bold"),
+                     text_color=TEXT_DARK).pack(side="left")
+
+        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
+
+        if not report:
+            ctk.CTkLabel(panel, text="Нет данных",
+                         font=("Inter", 14),
+                         text_color="#94A3B8").pack(pady=60)
+            return
+
+        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
+        head.pack(fill="x")
+        for text, w in [
+            ("Кружок/секция", COL_CLUB),
+            ("Преподаватель", COL_TEACHER),
+            ("Студентов", COL_STUDENTS),
+            ("Средний балл", COL_AVG),
+            ("Посещаемость", COL_ATT),
+        ]:
+            ctk.CTkLabel(head, text=text, width=w,
+                         font=("Inter", 12, "bold"),
+                         text_color=MENU_TEXT,
+                         anchor="w").pack(side="left", padx=14, pady=11)
+
+        scroll = ctk.CTkScrollableFrame(
+            panel,
+            fg_color="transparent",
+            scrollbar_button_color="#CBD5E1",
+            scrollbar_button_hover_color="#94A3B8",
+            corner_radius=0
+        )
+        scroll.pack(fill="both", expand=True)
+
+        for r_idx, row_data in enumerate(report):
+            row = ctk.CTkFrame(scroll, fg_color="transparent")
+            row.pack(fill="x")
+
+            avg = row_data.get("avg_grade") or 0
+            att = row_data.get("attendance") or 0
+
+            for value, w in [
+                (row_data.get("club", "-"), COL_CLUB),
+                (row_data.get("teacher", "-"), COL_TEACHER),
+                (str(row_data.get("students", 0)), COL_STUDENTS),
+                (f"{avg:.1f}" if avg else "-", COL_AVG),
+                (f"{att}%" if att else "-", COL_ATT),
+            ]:
+                ctk.CTkLabel(row, text=value, width=w,
+                             font=("Inter", 13),
+                             text_color="#334155",
+                             anchor="w").pack(side="left", padx=14, pady=11)
+
+            if r_idx < len(report) - 1:
+                ctk.CTkFrame(scroll, height=1,
+                             fg_color="#F1F5F9").pack(fill="x")
+    
+    def _show_settings(self):
+        from logic.admin import (
+            backup_db, get_backups_list, restore_db,
+        )
+
+        ctk.CTkLabel(self.content, text="Настройки",
+                     font=("Inter", 22, "bold"),
+                     text_color=TEXT_DARK, anchor="w").pack(fill="x")
+
+        ctk.CTkLabel(self.content,
+                     text="Параметры работы системы и резервное копирование",
+                     font=("Inter", 13), text_color=TEXT_GRAY,
+                     anchor="w").pack(fill="x", pady=(4, 24))
+
+        panel = ctk.CTkFrame(self.content, fg_color=CARD_BG,
+                             corner_radius=12, border_width=1,
+                             border_color=BORDER)
+        panel.pack(fill="both", expand=True)
+
+        h = ctk.CTkFrame(panel, fg_color="transparent")
+        h.pack(fill="x", padx=22, pady=16)
+        ctk.CTkLabel(h, text="Резервное копирование",
+                     font=("Inter", 15, "bold"),
+                     text_color=TEXT_DARK).pack(side="left")
+
+        ctk.CTkButton(h, text="Создать резервную копию",
+                      fg_color="#16A34A", hover_color="#15803D",
+                      height=32, corner_radius=8,
+                      font=("Inter", 12, "bold"),
+                      command=self._on_backup).pack(side="right")
+
+        ctk.CTkFrame(panel, height=1, fg_color=BORDER).pack(fill="x")
+
+        info = ctk.CTkFrame(panel, fg_color="transparent")
+        info.pack(fill="x", padx=22, pady=(16, 8))
+        ctk.CTkLabel(info,
+                     text="Резервные копии хранятся в папке backups/",
+                     font=("Inter", 12),
+                     text_color=TEXT_GRAY,
+                     anchor="w").pack(fill="x")
+
+        backups = get_backups_list()
+
+        if not backups:
+            ctk.CTkLabel(panel, text="Пока нет резервных копий",
+                         font=("Inter", 14),
+                         text_color="#94A3B8").pack(pady=60)
+            return
+
+        head = ctk.CTkFrame(panel, fg_color="#F8FAFC", corner_radius=0)
+        head.pack(fill="x")
+        for text, w in [("Файл", 400), ("Размер", 120), ("Действия", 200)]:
+            ctk.CTkLabel(head, text=text, width=w,
+                         font=("Inter", 12, "bold"),
+                         text_color=MENU_TEXT,
+                         anchor="w").pack(side="left", padx=14, pady=11)
+
+        scroll = ctk.CTkScrollableFrame(panel, fg_color="transparent",
+                                        scrollbar_button_color="#CBD5E1")
+        scroll.pack(fill="both", expand=True, padx=4, pady=4)
+
+        for r_idx, b in enumerate(backups):
+            row = ctk.CTkFrame(scroll, fg_color="transparent")
+            row.pack(fill="x")
+
+            ctk.CTkLabel(row, text=b["filename"], width=400,
+                         font=("Inter", 13),
+                         text_color="#334155",
+                         anchor="w").pack(side="left", padx=14, pady=11)
+
+            ctk.CTkLabel(row, text=f"{b['size_kb']} КБ", width=120,
+                         font=("Inter", 13),
+                         text_color="#94A3B8",
+                         anchor="w").pack(side="left", padx=14, pady=11)
+
+            actions = ctk.CTkFrame(row, fg_color="transparent")
+            actions.pack(side="left", padx=14, pady=11)
+
+            ctk.CTkButton(actions, text="восстановить",
+                          fg_color="#FEF9C3", hover_color="#FEF08A",
+                          text_color="#854D0E",
+                          width=120, height=28,
+                          command=lambda fn=b["filename"]:
+                              self._on_restore(fn)
+                          ).pack(side="left", padx=(0, 4))
+
+            ctk.CTkButton(actions, text="удалить",
+                          fg_color="#FEE2E2", hover_color="#FECACA",
+                          text_color="#991B1B",
+                          width=80, height=28,
+                          command=lambda fn=b["filename"]:
+                              self._on_delete_backup(fn)
+                          ).pack(side="left")
+
+            if r_idx < len(backups) - 1:
+                ctk.CTkFrame(scroll, height=1,
+                             fg_color="#F1F5F9").pack(fill="x")
+
+    def _on_backup(self):
+        from logic.admin import backup_db
+        from tkinter import messagebox
+
+        path = backup_db()
+        if path:
+            messagebox.showinfo("Успех",
+                                f"Резервная копия создана:\n{path}")
+            self.show_page("settings")
+        else:
+            messagebox.showerror("Ошибка", "Не удалось создать копию")
+
+    def _on_restore(self, filename):
+        from logic.admin import restore_db
+        from tkinter import messagebox
 
         confirm = messagebox.askyesno(
             "Подтверждение",
-            f"Удалить кружок «{club_name}»?\n"
-            f"Все занятия и записи будут удалены."
+            f"Восстановить БД из файла «{filename}»?\n\n"
+            f"Текущие данные будут заменены."
         )
 
         if not confirm:
             return
 
-        if delete_club(club_id, club_name, admin=self.user):
-            messagebox.showinfo("Успех", "Кружок удалён")
-            self._reload_clubs()
+        if restore_db(filename):
+            messagebox.showinfo("Успех",
+                                "БД восстановлена. Перезапустите приложение.")
         else:
-            messagebox.showerror("Ошибка", "Не удалось удалить")
+            messagebox.showerror("Ошибка", "Не удалось восстановить")
 
-    def _reload_clubs(self):
-        """Перезагрузить страницу кружков."""
-        self.show_page("clubs")
-        
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ
-# ============================================================
+    def _on_delete_backup(self, filename):
+        from logic.admin import get_backups_dir
+        from tkinter import messagebox
+        from pathlib import Path
+
+        confirm = messagebox.askyesno(
+            "Подтверждение",
+            f"Удалить резервную копию «{filename}»?"
+        )
+
+        if not confirm:
+            return
+
+        try:
+            path = get_backups_dir() / filename
+            path.unlink()
+            messagebox.showinfo("Успех", "Копия удалена")
+            self.show_page("settings")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось удалить: {e}")
+
 
 class AddUserDialog(ctk.CTkToplevel):
-    """Модальное окно добавления пользователя."""
 
     def __init__(self, parent, on_success, admin):
         super().__init__(parent)
@@ -646,26 +800,21 @@ class AddUserDialog(ctk.CTkToplevel):
 
         self.on_success = on_success
 
-        # --- Настройки окна ---
         self.title("Добавить пользователя")
         self.geometry("500x600")
         self.resizable(False, False)
         self.configure(fg_color="#FFFFFF")
 
-        # Центрируем относительно parent
         self.transient(parent)
 
-        # Карточка
         card = ctk.CTkFrame(self, fg_color="#FFFFFF")
         card.pack(fill="both", expand=True, padx=36, pady=28)
 
-        # Заголовок
         ctk.CTkLabel(card, text="Добавить пользователя",
                      font=("Inter", 20, "bold"),
                      text_color="#1E3A8A",
                      anchor="w").pack(fill="x", pady=(0, 24))
 
-        # --- Роль ---
         ctk.CTkLabel(card, text="Роль",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -683,18 +832,12 @@ class AddUserDialog(ctk.CTkToplevel):
             height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # --- ФИО ---
         self.fio_entry = self._add_field(card, "ФИО", "Иванов Иван Иванович")
-
-        # --- Логин ---
         self.login_entry = self._add_field(card, "Логин", "ivanov")
-
-        # --- Пароль ---
         self.password_entry = self._add_field(
             card, "Пароль", "минимум 6 символов", show="•"
         )
 
-        # --- Дополнительное поле (группа / направление) ---
         self.extra_label = ctk.CTkLabel(
             card, text="Группа",
             font=("Inter", 12, "bold"),
@@ -712,13 +855,11 @@ class AddUserDialog(ctk.CTkToplevel):
         )
         self.extra_entry.pack(fill="x", pady=(0, 20))
 
-        # Обновляем подпись при смене роли
         self.role_var.trace_add(
             "write",
             lambda *a: self._on_role_change()
         )
 
-        # --- Кнопки ---
         buttons = ctk.CTkFrame(card, fg_color="transparent")
         buttons.pack(fill="x", pady=(8, 0))
 
@@ -741,7 +882,6 @@ class AddUserDialog(ctk.CTkToplevel):
         ).pack(side="left", expand=True, fill="x", padx=(6, 0))
 
     def _add_field(self, parent, label, placeholder, show=None):
-        """Создать поле с подписью."""
         ctk.CTkLabel(parent, text=label,
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -759,7 +899,6 @@ class AddUserDialog(ctk.CTkToplevel):
         return entry
 
     def _on_role_change(self):
-        """Обновить подпись доп. поля при смене роли."""
         role = self.role_var.get()
         if role == "Студент":
             self.extra_label.configure(text="Группа")
@@ -772,7 +911,6 @@ class AddUserDialog(ctk.CTkToplevel):
             self.extra_entry.configure(placeholder_text="")
 
     def _on_create(self):
-        """Создать пользователя."""
         from logic.admin import create_user_with_profile
 
         role = self.role_var.get()
@@ -781,7 +919,6 @@ class AddUserDialog(ctk.CTkToplevel):
         password = self.password_entry.get().strip()
         extra = self.extra_entry.get().strip()
 
-        # Валидация
         if not fio or not login or not password:
             messagebox.showwarning("Ошибка", "Заполните обязательные поля")
             return
@@ -796,7 +933,6 @@ class AddUserDialog(ctk.CTkToplevel):
             "Администратор": "admin",
         }.get(role, "student")
 
-        # Создаём
         success = create_user_with_profile(
             fio=fio,
             login=login,
@@ -804,30 +940,20 @@ class AddUserDialog(ctk.CTkToplevel):
             role=role_key,
             group=extra if role_key == "student" else "",
             direction=extra if role_key == "teacher" else "",
-            admin=self.admin   # ← передаём текущего админа
+            admin=self.admin
         )
 
         if success:
             messagebox.showinfo("Успех", "Пользователь создан")
-            self.on_success()   # перезагрузить список
+            self.on_success()
             self.destroy()
         else:
             messagebox.showerror("Ошибка", "Логин уже занят")
 
-# ============================================================
-# МОДАЛЬНОЕ ОКНО: ДОБАВИТЬ / РЕДАКТИРОВАТЬ КРУЖОК
-# ============================================================
 
 class AddClubDialog(ctk.CTkToplevel):
-    """Модальное окно добавления/редактирования кружка."""
 
     def __init__(self, parent, on_success, club=None, admin=None):
-        """
-        Args:
-            parent: родитель
-            on_success: функция после успеха
-            club: если None — добавление, если dict — редактирование
-        """
         super().__init__(parent)
         self.admin = admin
 
@@ -841,21 +967,17 @@ class AddClubDialog(ctk.CTkToplevel):
         self.configure(fg_color="#FFFFFF")
         self.transient(parent)
 
-        # Карточка
         card = ctk.CTkFrame(self, fg_color="#FFFFFF")
         card.pack(fill="both", expand=True, padx=36, pady=28)
 
-        # Заголовок
         title = "Редактировать кружок" if self.is_edit else "Добавить кружок"
         ctk.CTkLabel(card, text=title,
                      font=("Inter", 20, "bold"),
                      text_color="#1E3A8A",
                      anchor="w").pack(fill="x", pady=(0, 24))
 
-        # Название
         self.name_entry = self._add_field(card, "Название", "Робототехника")
 
-        # Тип
         ctk.CTkLabel(card, text="Тип",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -870,7 +992,6 @@ class AddClubDialog(ctk.CTkToplevel):
             font=("Inter", 13), height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # Преподаватель
         ctk.CTkLabel(card, text="Преподаватель",
                      font=("Inter", 12, "bold"),
                      text_color="#334155",
@@ -880,7 +1001,7 @@ class AddClubDialog(ctk.CTkToplevel):
         teachers = get_all_teachers_for_select()
 
         if teachers:
-            teacher_names = [f"{t['id']} — {t['fio']}" for t in teachers]
+            teacher_names = [f"{t['id']} - {t['fio']}" for t in teachers]
             self.teacher_var = ctk.StringVar(value=teacher_names[0])
         else:
             teacher_names = ["Нет преподавателей"]
@@ -894,23 +1015,18 @@ class AddClubDialog(ctk.CTkToplevel):
             font=("Inter", 13), height=40, corner_radius=8
         ).pack(fill="x", pady=(0, 14))
 
-        # Расписание
         self.schedule_entry = self._add_field(
             card, "Расписание",
             "Пн 15:00-16:30, Ср 15:00-16:30"
         )
-
-        # Аудитория
         self.room_entry = self._add_field(card, "Аудитория", "204")
 
-        # Заполняем поля при редактировании
         if self.is_edit:
             self.name_entry.insert(0, club.get("name") or "")
             self.type_var.set(club.get("type") or "Кружок")
             self.schedule_entry.insert(0, club.get("schedule") or "")
             self.room_entry.insert(0, club.get("room") or "")
 
-            # Выбираем текущего преподавателя
             teacher_id = club.get("teacher_id")
             if teacher_id:
                 for name in teacher_names:
@@ -918,7 +1034,6 @@ class AddClubDialog(ctk.CTkToplevel):
                         self.teacher_var.set(name)
                         break
 
-        # Кнопки
         buttons = ctk.CTkFrame(card, fg_color="transparent")
         buttons.pack(fill="x", pady=(8, 0))
 
@@ -957,7 +1072,6 @@ class AddClubDialog(ctk.CTkToplevel):
         return entry
 
     def _on_save(self):
-        """Сохранить кружок."""
         from logic.admin import create_club, update_club
 
         name = self.name_entry.get().strip()
@@ -965,15 +1079,13 @@ class AddClubDialog(ctk.CTkToplevel):
         schedule = self.schedule_entry.get().strip()
         room = self.room_entry.get().strip()
 
-        # Парсим teacher_id из строки "3 — Иванов Иван"
         teacher_str = self.teacher_var.get()
         try:
-            teacher_id = int(teacher_str.split(" — ")[0])
+            teacher_id = int(teacher_str.split(" - ")[0])
         except (ValueError, IndexError):
             messagebox.showwarning("Ошибка", "Выберите преподавателя")
             return
 
-        # Валидация
         if not name:
             messagebox.showwarning("Ошибка", "Введите название")
             return
@@ -982,26 +1094,25 @@ class AddClubDialog(ctk.CTkToplevel):
             messagebox.showwarning("Ошибка", "Введите расписание")
             return
 
-        # Создание или обновление
         if self.is_edit:
             success = update_club(
-                self.club["id"], 
-                name, 
+                self.club["id"],
+                name,
                 type_,
-                teacher_id, 
-                schedule, 
+                teacher_id,
+                schedule,
                 room,
                 admin=self.admin
-        )
+            )
         else:
             success = create_club(
-                name, 
-                type_, 
-                teacher_id, 
-                schedule, 
+                name,
+                type_,
+                teacher_id,
+                schedule,
                 room,
                 admin=self.admin
-        )
+            )
 
         if success:
             messagebox.showinfo("Успех",
