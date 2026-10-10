@@ -790,6 +790,25 @@ class AdminApp(ctk.CTkFrame):
             self.show_page("settings")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось удалить: {e}")
+    def _reload_clubs(self):
+        self.show_page("clubs")
+
+    def _on_delete_club(self, club_id, club_name):
+        from logic.admin import delete_club
+
+        confirm = messagebox.askyesno(
+            "Подтверждение",
+            f"Удалить кружок «{club_name}»?"
+        )
+
+        if not confirm:
+            return
+
+        if delete_club(club_id, club_name, admin=self.user):
+            messagebox.showinfo("Успех", "Кружок удалён")
+            self.show_page("clubs")
+        else:
+            messagebox.showerror("Ошибка", "Не удалось удалить")
 
 
 class AddUserDialog(ctk.CTkToplevel):

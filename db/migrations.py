@@ -81,6 +81,49 @@ def run_migrations():
     add_comment_to_attendance()
     migrate_statuses()
     print("Миграции завершены.")
+    
+
+def recreate_lessons_with_cascade():
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+
+        # Проверяем, есть ли уже CASCADE
+        cursor.execute("PRAGMA foreign_key_list(lessons)")
+        fks = cursor.fetchall()
+        has_cascade = any(fk["on_delete"] == "CASCADE" for fk in fks)
+        if has_cascade:
+            print("CASCADE уже есть у lessons")
+            return
+
+        # Пересоздаём таблицу
+        cursor.execute("ALTER TABLE lessons RENAME TO lessons_old")
+
+        cursor.execute("""
+            CREATE TABLE lessons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                topic TEXT,
+                type TEXT,
+                hours INTEGER,
+                club_id INTEGER,
+                FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE
+            )
+        """)
+
+        cursor.execute("""
+            INSERT INTO lessons (id, date, topic, type, hours, club_id)
+            SELECT id, date, topic, type, hours, club_id FROM lessons_old
+        """)
+
+        cursor.execute("DROP TABLE lessons_old")
+        conn.commit()
+        print("lessons пересоздана с ON DELETE CASCADE")
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка: {e}")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

@@ -160,6 +160,7 @@ class LoginPage(ctk.CTkFrame):
 
     def open_forgot(self):
         dialog = ForgotPasswordDialog(self)
+        dialog.wait_visibility()
         dialog.grab_set()
 
 

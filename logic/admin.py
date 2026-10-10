@@ -414,6 +414,18 @@ def delete_club(club_id, club_name="", admin=None):
     conn = get_connection()
     try:
         cursor = conn.cursor()
+
+        # Удаляем связанные записи
+        cursor.execute("""
+            DELETE FROM attendance
+            WHERE lesson_id IN (
+                SELECT id FROM lessons WHERE club_id = ?
+            )
+        """, (club_id,))
+        cursor.execute("DELETE FROM lessons WHERE club_id = ?", (club_id,))
+        cursor.execute("DELETE FROM enrollments WHERE club_id = ?", (club_id,))
+
+        # Удаляем кружок
         cursor.execute("DELETE FROM clubs WHERE id = ?", (club_id,))
         conn.commit()
 
@@ -425,77 +437,12 @@ def delete_club(club_id, club_name="", admin=None):
                 details=club_name
             )
         return cursor.rowcount > 0
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка удаления кружка: {e}")
+        return False
     finally:
         conn.close()
-
-def get_backups_dir():
-    from pathlib import Path
-
-    base = Path(__file__).parent.parent
-    backups = base / "backups"
-    backups.mkdir(exist_ok=True)
-    return backups
-
-
-def backup_db():
-    import shutil
-    from datetime import datetime
-    from pathlib import Path
-
-    base = Path(__file__).parent.parent
-    src = base / "ejksr.db"
-
-    if not src.exists():
-        return None
-
-    backups = get_backups_dir()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dst = backups / f"ejksr_{timestamp}.db"
-
-    try:
-        shutil.copy(src, dst)
-        return str(dst)
-    except Exception as e:
-        print(f"Ошибка создания резервной копии: {e}")
-        return None
-
-
-def get_backups_list():
-    from pathlib import Path
-
-    backups = get_backups_dir()
-    files = sorted(backups.glob("ejksr_*.db"), reverse=True)
-
-    result = []
-    for f in files:
-        stat = f.stat()
-        result.append({
-            "filename": f.name,
-            "path": str(f),
-            "size_kb": round(stat.st_size / 1024, 1),
-        })
-    return result
-
-
-def restore_db(filename):
-    import shutil
-    from pathlib import Path
-
-    backups = get_backups_dir()
-    src = backups / filename
-
-    if not src.exists():
-        return False
-
-    base = Path(__file__).parent.parent
-    dst = base / "ejksr.db"
-
-    try:
-        shutil.copy(src, dst)
-        return True
-    except Exception as e:
-        print(f"Ошибка восстановления: {e}")
-        return False
 
 def get_backups_dir():
     from pathlib import Path

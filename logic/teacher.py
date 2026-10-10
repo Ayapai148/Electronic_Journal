@@ -291,10 +291,12 @@ def update_teacher_club(club_id, teacher_id, name, type_, schedule, room):
 
 
 def delete_teacher_club(club_id, teacher_id):
+    #Удалить кружок вместе со связанными занятиями и записями
     conn = get_connection()
     try:
         cursor = conn.cursor()
 
+        # Проверяем, что кружок принадлежит этому преподавателю
         cursor.execute(
             "SELECT id FROM clubs WHERE id = ? AND teacher_id = ?",
             (club_id, teacher_id)
@@ -302,9 +304,29 @@ def delete_teacher_club(club_id, teacher_id):
         if not cursor.fetchone():
             return False
 
+        # Удаляем посещаемость занятий этого кружка
+        cursor.execute("""
+            DELETE FROM attendance
+            WHERE lesson_id IN (
+                SELECT id FROM lessons WHERE club_id = ?
+            )
+        """, (club_id,))
+
+        # Удаляем занятия
+        cursor.execute("DELETE FROM lessons WHERE club_id = ?", (club_id,))
+
+        # Удаляем записи студентов
+        cursor.execute("DELETE FROM enrollments WHERE club_id = ?", (club_id,))
+
+        # Удаляем сам кружок
         cursor.execute("DELETE FROM clubs WHERE id = ?", (club_id,))
+
         conn.commit()
         return cursor.rowcount > 0
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка удаления кружка: {e}")
+        return False
     finally:
         conn.close()
 
@@ -696,5 +718,23 @@ def enroll_group_to_club(club_id, group):
         conn.rollback()
         print(f"Ошибка записи группы: {e}")
         return 0
+    finally:
+        conn.close()
+def get_teacher_students(teacher_id):
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT
+                s.id,
+                s.surname || ' ' || s.name AS fio,
+                s.groups
+            FROM students s
+            JOIN enrollments e ON e.student_id = s.id
+            JOIN clubs c ON e.club_id = c.id
+            WHERE c.teacher_id = ? AND e.status = 'active'
+            ORDER BY s.surname, s.name
+        """, (teacher_id,))
+        return [dict(r) for r in cursor.fetchall()]
     finally:
         conn.close()

@@ -459,7 +459,9 @@ class StudentApp(ctk.CTkFrame):
 
         for club_name, club_grades in grouped.items():
             teacher = club_grades[0].get("teacher_fio", "—") if club_grades else "—"
-            attendance = club_grades[0].get("attendance", 0) if club_grades else 0
+            attendance = 0
+            if club_grades:
+                attendance = club_grades[0].get("attendance", 0)
 
             panel = ctk.CTkFrame(scroll, fg_color=CARD_BG,
                                  corner_radius=12, border_width=1,

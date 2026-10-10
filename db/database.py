@@ -74,7 +74,7 @@ def init_db():
             type TEXT,
             hours INTEGER,
             club_id INTEGER,
-            FOREIGN KEY (club_id) REFERENCES clubs(id)
+            FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE CASCADE
         )
     """)
 
